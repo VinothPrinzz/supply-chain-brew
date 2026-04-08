@@ -13,7 +13,7 @@ interface SalesReportShellProps {
   description: string;
   reportTitle: string;
   columns: { label: string; key: string; align?: string }[];
-  mockRows: Record<string, string | number>[];
+  mockRows: Record<string, string | number | boolean>[];
 }
 
 const SalesReportShell: React.FC<SalesReportShellProps> = ({ title, description, reportTitle, columns, mockRows }) => {
