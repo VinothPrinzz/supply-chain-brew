@@ -14,10 +14,12 @@ import PriceChartPage from "@/pages/masters/PriceChartPage";
 import RecordIndentsPage from "@/pages/sales/RecordIndentsPage";
 import DirectSalesPage from "@/pages/sales/DirectSalesPage";
 import PostIndentPage from "@/pages/sales/PostIndentPage";
+import CancellationRequestsPage from "@/pages/sales/CancellationRequestsPage";
 import StockDashboard from "@/pages/fgs/StockDashboard";
 import StockEntryPage from "@/pages/fgs/StockEntryPage";
 import StockReportsPage from "@/pages/fgs/StockReportsPage";
 import DispatchPage from "@/pages/fgs/DispatchPage";
+import DispatchSheetPage from "@/pages/fgs/DispatchSheetPage";
 import RouteSheetPage from "@/pages/reports/RouteSheetPage";
 import GatePassReportPage from "@/pages/reports/GatePassReportPage";
 import {
@@ -25,6 +27,10 @@ import {
   CashSalesReport, CreditSalesReport, SalesRegister,
   TalukaAgentSales, AdhocSalesReport, GSTStatement,
 } from "@/pages/sales-reports/SalesReports";
+import {
+  TimeWindowsPage, NotificationsPage, DealerNotificationsPage,
+  BannerManagementPage, RolesPage, UserManagementPage,
+} from "@/pages/system/SystemPages";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,22 +44,38 @@ const App = () => (
         <AppLayout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            {/* Masters */}
-            <Route path="/masters/customers" element={<CustomersPage />} />
-            <Route path="/masters/contractors" element={<ContractorsPage />} />
-            <Route path="/masters/routes" element={<RoutesPage />} />
-            <Route path="/masters/batches" element={<BatchesPage />} />
-            <Route path="/masters/products" element={<ProductsPage />} />
+            {/* Masters - Customers */}
+            <Route path="/masters/customers" element={<CustomersPage tab="list" />} />
+            <Route path="/masters/customers/new" element={<CustomersPage tab="new" />} />
+            <Route path="/masters/customers/assign-route" element={<CustomersPage tab="assign-route" />} />
+            {/* Masters - Contractors */}
+            <Route path="/masters/contractors" element={<ContractorsPage tab="list" />} />
+            <Route path="/masters/contractors/new" element={<ContractorsPage tab="new" />} />
+            {/* Masters - Routes */}
+            <Route path="/masters/routes" element={<RoutesPage tab="list" />} />
+            <Route path="/masters/routes/new" element={<RoutesPage tab="new" />} />
+            {/* Masters - Batches */}
+            <Route path="/masters/batches" element={<BatchesPage tab="list" />} />
+            <Route path="/masters/batches/new" element={<BatchesPage tab="new" />} />
+            {/* Masters - Products */}
+            <Route path="/masters/products" element={<ProductsPage tab="list" />} />
+            <Route path="/masters/products/add" element={<ProductsPage tab="add" />} />
+            <Route path="/masters/products/rates" element={<ProductsPage tab="rates" />} />
+            {/* Masters - Price Chart */}
             <Route path="/masters/price-chart" element={<PriceChartPage />} />
             {/* Sales Operations */}
             <Route path="/sales/record-indents" element={<RecordIndentsPage />} />
-            <Route path="/sales/direct-sales" element={<DirectSalesPage />} />
             <Route path="/sales/post-indent" element={<PostIndentPage />} />
+            <Route path="/sales/direct-sales/gate-pass" element={<DirectSalesPage tab="gate-pass" />} />
+            <Route path="/sales/direct-sales/cash-customer" element={<DirectSalesPage tab="cash-customer" />} />
+            <Route path="/sales/direct-sales/modify" element={<DirectSalesPage tab="modify" />} />
+            <Route path="/sales/cancellations" element={<CancellationRequestsPage />} />
             {/* FGS */}
             <Route path="/fgs/dashboard" element={<StockDashboard />} />
             <Route path="/fgs/stock-entry" element={<StockEntryPage />} />
             <Route path="/fgs/reports" element={<StockReportsPage />} />
             <Route path="/fgs/dispatch" element={<DispatchPage />} />
+            <Route path="/fgs/dispatch-sheet" element={<DispatchSheetPage />} />
             {/* Reports */}
             <Route path="/reports/route-sheet" element={<RouteSheetPage />} />
             <Route path="/reports/gate-pass" element={<GatePassReportPage />} />
@@ -67,6 +89,13 @@ const App = () => (
             <Route path="/sales-reports/taluka-agent" element={<TalukaAgentSales />} />
             <Route path="/sales-reports/adhoc" element={<AdhocSalesReport />} />
             <Route path="/sales-reports/gst" element={<GSTStatement />} />
+            {/* System */}
+            <Route path="/system/time-windows" element={<TimeWindowsPage />} />
+            <Route path="/system/notifications" element={<NotificationsPage />} />
+            <Route path="/system/dealer-notifications" element={<DealerNotificationsPage />} />
+            <Route path="/system/banners" element={<BannerManagementPage />} />
+            <Route path="/system/roles" element={<RolesPage />} />
+            <Route path="/system/users" element={<UserManagementPage />} />
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>

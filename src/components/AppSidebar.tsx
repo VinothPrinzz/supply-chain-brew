@@ -2,7 +2,8 @@ import {
   Users, Truck, MapPin, Clock, Package, Home as HomeIcon, FileText,
   BarChart3, Warehouse, ClipboardList, ShoppingCart, Send,
   CreditCard, BookOpen, TrendingUp, Receipt, Map, Zap, FileSpreadsheet,
-  ChevronDown, Settings
+  ChevronDown, Settings, XCircle, Bell, Image, Shield, UserCog,
+  Timer, Megaphone, LayoutList
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -19,42 +20,103 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
+interface NavSubGroup {
+  label: string;
+  items: NavItem[];
+}
+
 interface NavGroup {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  items: NavItem[];
+  items?: NavItem[];
+  subGroups?: NavSubGroup[];
 }
 
 const navGroups: NavGroup[] = [
   {
     label: "Masters",
     icon: Settings,
-    items: [
-      { title: "Customers", url: "/masters/customers", icon: Users },
-      { title: "Contractors", url: "/masters/contractors", icon: Truck },
-      { title: "Routes", url: "/masters/routes", icon: MapPin },
-      { title: "Batches", url: "/masters/batches", icon: Clock },
-      { title: "Products", url: "/masters/products", icon: Package },
-      { title: "Price Chart", url: "/masters/price-chart", icon: FileText },
+    subGroups: [
+      {
+        label: "Customers",
+        items: [
+          { title: "All Customers", url: "/masters/customers", icon: Users },
+          { title: "New Customer", url: "/masters/customers/new", icon: Users },
+          { title: "Assign Route", url: "/masters/customers/assign-route", icon: MapPin },
+        ],
+      },
+      {
+        label: "Contractors",
+        items: [
+          { title: "All Contractors", url: "/masters/contractors", icon: Truck },
+          { title: "New Contractor", url: "/masters/contractors/new", icon: Truck },
+        ],
+      },
+      {
+        label: "Routes",
+        items: [
+          { title: "All Routes", url: "/masters/routes", icon: MapPin },
+          { title: "New Route", url: "/masters/routes/new", icon: MapPin },
+        ],
+      },
+      {
+        label: "Batches",
+        items: [
+          { title: "All Batches", url: "/masters/batches", icon: Clock },
+          { title: "New Batch", url: "/masters/batches/new", icon: Clock },
+        ],
+      },
+      {
+        label: "Products",
+        items: [
+          { title: "All Products", url: "/masters/products", icon: Package },
+          { title: "Add Packet", url: "/masters/products/add", icon: Package },
+          { title: "Rate Categories", url: "/masters/products/rates", icon: FileText },
+        ],
+      },
+      {
+        label: "Price Chart",
+        items: [
+          { title: "View Price Chart", url: "/masters/price-chart", icon: FileText },
+        ],
+      },
     ],
   },
   {
     label: "Sales Operations",
     icon: ShoppingCart,
-    items: [
-      { title: "Record Indents", url: "/sales/record-indents", icon: ClipboardList },
-      { title: "Direct Sales", url: "/sales/direct-sales", icon: Zap },
-      { title: "Post Indent", url: "/sales/post-indent", icon: Send },
+    subGroups: [
+      {
+        label: "Indents",
+        items: [
+          { title: "Record Indents", url: "/sales/record-indents", icon: ClipboardList },
+          { title: "Post Indent", url: "/sales/post-indent", icon: Send },
+        ],
+      },
+      {
+        label: "Direct Sales",
+        items: [
+          { title: "Gate Pass (Agents)", url: "/sales/direct-sales/gate-pass", icon: Zap },
+          { title: "Cash Customer", url: "/sales/direct-sales/cash-customer", icon: CreditCard },
+          { title: "Modify Indent", url: "/sales/direct-sales/modify", icon: ClipboardList },
+        ],
+      },
+      {
+        label: "Cancellations",
+        items: [
+          { title: "Cancellation Requests", url: "/sales/cancellations", icon: XCircle },
+        ],
+      },
     ],
   },
   {
     label: "FGS - Stock",
     icon: Warehouse,
     items: [
-      { title: "Stock Dashboard", url: "/fgs/dashboard", icon: BarChart3 },
+      { title: "Stock Overview", url: "/fgs/dashboard", icon: BarChart3 },
       { title: "Stock Entry", url: "/fgs/stock-entry", icon: Package },
       { title: "Stock Reports", url: "/fgs/reports", icon: FileText },
-      { title: "Dispatch", url: "/fgs/dispatch", icon: Send },
+      { title: "Dispatch Sheet", url: "/fgs/dispatch-sheet", icon: Send },
     ],
   },
   {
@@ -80,12 +142,31 @@ const navGroups: NavGroup[] = [
       { title: "GST Statement", url: "/sales-reports/gst", icon: FileText },
     ],
   },
+  {
+    label: "System",
+    icon: Settings,
+    items: [
+      { title: "Time Windows", url: "/system/time-windows", icon: Timer },
+      { title: "Notifications", url: "/system/notifications", icon: Bell },
+      { title: "Dealer Notifications", url: "/system/dealer-notifications", icon: Megaphone },
+      { title: "Banner Management", url: "/system/banners", icon: Image },
+      { title: "Roles & Access", url: "/system/roles", icon: Shield },
+      { title: "User Management", url: "/system/users", icon: UserCog },
+    ],
+  },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+
+  const getAllUrls = (group: NavGroup): string[] => {
+    const urls: string[] = [];
+    group.items?.forEach((item) => urls.push(item.url));
+    group.subGroups?.forEach((sg) => sg.items.forEach((item) => urls.push(item.url)));
+    return urls;
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -101,7 +182,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Dashboard link */}
+        {/* Dashboard */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -118,7 +199,8 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {navGroups.map((group) => {
-          const isGroupActive = group.items.some((item) => location.pathname.startsWith(item.url));
+          const allUrls = getAllUrls(group);
+          const isGroupActive = allUrls.some((url) => location.pathname === url || location.pathname.startsWith(url + "/"));
 
           return (
             <Collapsible key={group.label} defaultOpen={isGroupActive}>
@@ -134,22 +216,44 @@ export function AppSidebar() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarGroupContent>
-                    <SidebarMenu>
-                      {group.items.map((item) => (
-                        <SidebarMenuItem key={item.url}>
-                          <SidebarMenuButton asChild>
-                            <NavLink
-                              to={item.url}
-                              activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                              className="hover:bg-sidebar-accent/50"
-                            >
-                              <item.icon className="h-4 w-4" />
-                              {!collapsed && <span>{item.title}</span>}
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
+                    {/* Flat items */}
+                    {group.items && (
+                      <SidebarMenu>
+                        {group.items.map((item) => (
+                          <SidebarMenuItem key={item.url}>
+                            <SidebarMenuButton asChild>
+                              <NavLink to={item.url} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium" className="hover:bg-sidebar-accent/50">
+                                <item.icon className="h-4 w-4" />
+                                {!collapsed && <span>{item.title}</span>}
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    )}
+
+                    {/* Sub-groups */}
+                    {group.subGroups?.map((sg) => (
+                      <div key={sg.label} className="mt-1">
+                        {!collapsed && (
+                          <p className="px-4 py-1 text-[11px] font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                            {sg.label}
+                          </p>
+                        )}
+                        <SidebarMenu>
+                          {sg.items.map((item) => (
+                            <SidebarMenuItem key={item.url}>
+                              <SidebarMenuButton asChild>
+                                <NavLink to={item.url} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium" className="hover:bg-sidebar-accent/50">
+                                  <item.icon className="h-4 w-4" />
+                                  {!collapsed && <span>{item.title}</span>}
+                                </NavLink>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      </div>
+                    ))}
                   </SidebarGroupContent>
                 </CollapsibleContent>
               </SidebarGroup>
