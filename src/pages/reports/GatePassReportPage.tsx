@@ -5,11 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import ReportViewer from "@/components/ReportViewer";
+import { products } from "@/data/mockData";
 
 const GatePassReportPage = () => {
   const [fromDate, setFromDate] = useState("2026-04-01");
   const [toDate, setToDate] = useState("2026-04-08");
   const [showReport, setShowReport] = useState(false);
+
+  const mockGatePassData = [
+    { gpNo: "GP-001", date: "2026-04-08", agent: "Agent Ravi", items: [{ name: "TM 500", qty: 20 }, { name: "FCM 500", qty: 15 }], amount: 1295 },
+    { gpNo: "GP-002", date: "2026-04-08", agent: "Agent Kumar", items: [{ name: "Curd 500", qty: 10 }, { name: "Ghee 500", qty: 5 }], amount: 1580 },
+    { gpNo: "GP-003", date: "2026-04-07", agent: "Agent Ravi", items: [{ name: "TM 500", qty: 30 }], amount: 675 },
+    { gpNo: "GP-004", date: "2026-04-07", agent: "Agent Prakash", items: [{ name: "BM 200", qty: 60 }, { name: "Lassi 200", qty: 24 }], amount: 864 },
+  ];
+
+  const totalAmount = mockGatePassData.reduce((s, gp) => s + gp.amount, 0);
 
   const page = (
     <div>
@@ -19,17 +29,30 @@ const GatePassReportPage = () => {
       </div>
       <table className="w-full text-xs border-collapse">
         <thead><tr className="border">
+          <th className="border py-1 px-2 text-left">GP No.</th>
           <th className="border py-1 px-2 text-left">Date</th>
           <th className="border py-1 px-2 text-left">Agent</th>
-          <th className="border py-1 px-2 text-left">Product</th>
-          <th className="border py-1 px-2 text-right">Qty</th>
-          <th className="border py-1 px-2 text-right">Rate</th>
+          <th className="border py-1 px-2 text-left">Items</th>
           <th className="border py-1 px-2 text-right">Amount</th>
         </tr></thead>
         <tbody>
-          <tr className="border"><td className="border py-1 px-2">2026-04-08</td><td className="border py-1 px-2">Agent Ravi</td><td className="border py-1 px-2">TM 500</td><td className="border py-1 px-2 text-right">20</td><td className="border py-1 px-2 text-right">₹22.50</td><td className="border py-1 px-2 text-right">₹450.00</td></tr>
-          <tr className="border"><td className="border py-1 px-2">2026-04-08</td><td className="border py-1 px-2">Agent Kumar</td><td className="border py-1 px-2">FCM 500</td><td className="border py-1 px-2 text-right">15</td><td className="border py-1 px-2 text-right">₹28.00</td><td className="border py-1 px-2 text-right">₹420.00</td></tr>
-          <tr className="border font-semibold"><td className="border py-1 px-2" colSpan={5}>TOTAL</td><td className="border py-1 px-2 text-right">₹870.00</td></tr>
+          {mockGatePassData.map((gp) => (
+            <tr key={gp.gpNo} className="border">
+              <td className="border py-1 px-2 font-mono">{gp.gpNo}</td>
+              <td className="border py-1 px-2">{gp.date}</td>
+              <td className="border py-1 px-2">{gp.agent}</td>
+              <td className="border py-1 px-2">
+                {gp.items.map((item, i) => (
+                  <div key={i}>{item.name} × {item.qty}</div>
+                ))}
+              </td>
+              <td className="border py-1 px-2 text-right">₹{gp.amount.toLocaleString()}</td>
+            </tr>
+          ))}
+          <tr className="border font-semibold">
+            <td className="border py-1 px-2" colSpan={4}>TOTAL</td>
+            <td className="border py-1 px-2 text-right">₹{totalAmount.toLocaleString()}</td>
+          </tr>
         </tbody>
       </table>
     </div>
