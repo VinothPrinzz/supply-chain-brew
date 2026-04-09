@@ -5,46 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import ReportViewer from "@/components/ReportViewer";
-import { products } from "@/data/mockData";
+import { products, routes, customers, officers, agents } from "@/data/mockData";
 
-// Generic sales report shell — reused for multiple report pages
 interface SalesReportShellProps {
   title: string;
   description: string;
   reportTitle: string;
-  columns: { label: string; key: string; align?: string }[];
-  mockRows: Record<string, string | number | boolean>[];
+  renderPages: (from: string, to: string) => React.ReactNode[];
 }
 
-const SalesReportShell: React.FC<SalesReportShellProps> = ({ title, description, reportTitle, columns, mockRows }) => {
+const SalesReportShell: React.FC<SalesReportShellProps> = ({ title, description, reportTitle, renderPages }) => {
   const [fromDate, setFromDate] = useState("2026-04-01");
   const [toDate, setToDate] = useState("2026-04-08");
   const [showReport, setShowReport] = useState(false);
-
-  const page = (
-    <div>
-      <div className="text-center mb-4">
-        <h2 className="text-sm font-bold uppercase">Haveri Milk Union — {reportTitle}</h2>
-        <p className="text-xs text-muted-foreground">{fromDate} to {toDate}</p>
-      </div>
-      <table className="w-full text-xs border-collapse">
-        <thead><tr className="border">
-          {columns.map((col) => (
-            <th key={col.key} className={`border py-1 px-2 font-medium ${col.align === "right" ? "text-right" : "text-left"}`}>{col.label}</th>
-          ))}
-        </tr></thead>
-        <tbody>
-          {mockRows.map((row, i) => (
-            <tr key={i} className={`border ${row._bold ? "font-semibold bg-muted/20" : ""}`}>
-              {columns.map((col) => (
-                <td key={col.key} className={`border py-1 px-2 ${col.align === "right" ? "text-right" : ""}`}>{row[col.key] ?? ""}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 
   return (
     <div>
@@ -56,197 +29,477 @@ const SalesReportShell: React.FC<SalesReportShellProps> = ({ title, description,
           <Button onClick={() => setShowReport(true)}>Generate</Button>
         </div>
       </CardContent></Card>
-      {showReport && <ReportViewer title={reportTitle} pages={[page]} />}
+      {showReport && <ReportViewer title={reportTitle} pages={renderPages(fromDate, toDate)} />}
     </div>
   );
 };
 
-// ===== Individual Report Pages =====
+const dmuProducts = products.filter((p) => ["Milk", "Curd", "Lassi", "Buttermilk"].includes(p.category) && !p.terminated);
+const activeProducts = products.filter((p) => !p.terminated);
 
+// 12.1 Daily Sales Statement (DMU Items)
 export const DailySalesStatement = () => (
-  <SalesReportShell
-    title="Daily Sales Statement"
-    description="DMU items daily sales (own production)"
-    reportTitle="Daily Sales Statement — DMU Items"
-    columns={[
-      { label: "Date", key: "date" },
-      { label: "Product", key: "product" },
-      { label: "Qty", key: "qty", align: "right" },
-      { label: "Rate", key: "rate", align: "right" },
-      { label: "Amount", key: "amount", align: "right" },
-    ]}
-    mockRows={[
-      { date: "08-04-2026", product: "TM 500", qty: 250, rate: "₹22.50", amount: "₹5,625" },
-      { date: "08-04-2026", product: "FCM 500", qty: 150, rate: "₹28.00", amount: "₹4,200" },
-      { date: "08-04-2026", product: "Curd 500", qty: 80, rate: "₹28.00", amount: "₹2,240" },
-      { date: "", product: "", qty: "", rate: "TOTAL", amount: "₹12,065", _bold: true },
-    ]}
+  <SalesReportShell title="Daily Sales Statement" description="DMU items daily sales (own production)" reportTitle="Daily Sales Statement — DMU Items"
+    renderPages={(from, to) => {
+      const dates = ["2026-04-07", "2026-04-08"];
+      const page = (
+        <div key="p1">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">Daily Sales Statement — DMU Items</p>
+            <p className="text-xs text-muted-foreground">{from} to {to}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead>
+              <tr className="border">
+                <th className="border py-1 px-1 text-left" rowSpan={2}>Date</th>
+                {dmuProducts.map((p) => <th key={p.id} className="border py-1 px-1 text-center" colSpan={2}>{p.reportAlias}</th>)}
+                <th className="border py-1 px-1 text-right" rowSpan={2}>Grand Total</th>
+              </tr>
+              <tr className="border">
+                {dmuProducts.map((p) => (
+                  <><th key={p.id+"q"} className="border py-1 px-1 text-right">Qty</th><th key={p.id+"a"} className="border py-1 px-1 text-right">Amt</th></>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {dates.map((d) => {
+                let grandTotal = 0;
+                return (
+                  <tr key={d} className="border">
+                    <td className="border py-1 px-1">{d}</td>
+                    {dmuProducts.map((p) => {
+                      const qty = Math.floor(Math.random() * 200) + 50;
+                      const amt = qty * (p.rateCategories["Retail-Dealer"] || p.mrp);
+                      grandTotal += amt;
+                      return <><td key={p.id+"q"} className="border py-1 px-1 text-right">{qty}</td><td key={p.id+"a"} className="border py-1 px-1 text-right">₹{amt.toFixed(0)}</td></>;
+                    })}
+                    <td className="border py-1 px-1 text-right font-semibold">₹{grandTotal.toFixed(0)}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1">TOTAL</td>
+                {dmuProducts.map((p) => <><td key={p.id+"q"} className="border py-1 px-1 text-right">-</td><td key={p.id+"a"} className="border py-1 px-1 text-right">-</td></>)}
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+      return [page];
+    }}
   />
 );
 
+// 12.2 Day/Route wise cash sales
 export const DayRouteCashSales = () => (
-  <SalesReportShell
-    title="Day/Route Wise Cash Sales"
-    description="Cash sales breakdown by day and route"
-    reportTitle="Day/Route Wise Cash Sales"
-    columns={[
-      { label: "Date", key: "date" },
-      { label: "Route", key: "route" },
-      { label: "Customers", key: "customers", align: "right" },
-      { label: "Qty", key: "qty", align: "right" },
-      { label: "Amount", key: "amount", align: "right" },
-    ]}
-    mockRows={[
-      { date: "08-04-2026", route: "Haveri City Route 1", customers: 3, qty: 120, amount: "₹3,240" },
-      { date: "08-04-2026", route: "Haveri City Route 2", customers: 2, qty: 85, amount: "₹2,180" },
-      { date: "08-04-2026", route: "Ranebennur Route", customers: 1, qty: 60, amount: "₹1,350" },
-      { date: "", route: "", customers: "", qty: "", amount: "₹6,770", _bold: true },
-    ]}
+  <SalesReportShell title="Day/Route Wise Cash Sales" description="Cash sales breakdown by day and route" reportTitle="Day/Route Wise Cash Sales"
+    renderPages={(from, to) => {
+      const page = (
+        <div key="p1">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">Day/Route Wise Cash Sales</p>
+            <p className="text-xs text-muted-foreground">{from} to {to}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead><tr className="border">
+              <th className="border py-1 px-1 text-left">Date</th>
+              <th className="border py-1 px-1 text-left">Route</th>
+              {activeProducts.slice(0, 5).map((p) => <th key={p.id} className="border py-1 px-1 text-center">{p.reportAlias}</th>)}
+              <th className="border py-1 px-1 text-right">Total Qty</th>
+              <th className="border py-1 px-1 text-right">Amount</th>
+            </tr></thead>
+            <tbody>
+              {routes.slice(0, 4).map((r) => (
+                <tr key={r.id} className="border">
+                  <td className="border py-1 px-1">2026-04-08</td>
+                  <td className="border py-1 px-1">{r.name}</td>
+                  {activeProducts.slice(0, 5).map((p) => {
+                    const qty = Math.floor(Math.random() * 60) + 10;
+                    return <td key={p.id} className="border py-1 px-1 text-center">{qty}</td>;
+                  })}
+                  <td className="border py-1 px-1 text-right font-mono">{Math.floor(Math.random() * 200) + 100}</td>
+                  <td className="border py-1 px-1 text-right font-mono">₹{(Math.floor(Math.random() * 5000) + 2000).toLocaleString()}</td>
+                </tr>
+              ))}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1" colSpan={2}>TOTAL</td>
+                {activeProducts.slice(0, 5).map((p) => <td key={p.id} className="border py-1 px-1 text-center">-</td>)}
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+      return [page];
+    }}
   />
 );
 
+// 12.3 Officer wise sales (qty)
 export const OfficerWiseSales = () => (
-  <SalesReportShell
-    title="Officer Wise Sales (Qty)"
-    description="Sales grouped by officer"
-    reportTitle="Officer Wise Sales Report"
-    columns={[
-      { label: "Officer", key: "officer" },
-      { label: "TM 500", key: "tm", align: "right" },
-      { label: "FCM 500", key: "fcm", align: "right" },
-      { label: "Curd 500", key: "curd", align: "right" },
-      { label: "Total Qty", key: "total", align: "right" },
-    ]}
-    mockRows={[
-      { officer: "Ramesh K", tm: 120, fcm: 60, curd: 40, total: 220 },
-      { officer: "Suresh M", tm: 80, fcm: 50, curd: 30, total: 160 },
-      { officer: "Mahesh P", tm: 50, fcm: 40, curd: 10, total: 100 },
-      { officer: "TOTAL", tm: 250, fcm: 150, curd: 80, total: 480, _bold: true },
-    ]}
+  <SalesReportShell title="Officer Wise Sales (Qty)" description="Sales grouped by officer" reportTitle="Officer Wise Sales Report"
+    renderPages={(from, to) => {
+      const page = (
+        <div key="p1">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">Officer Wise Sales (Qty)</p>
+            <p className="text-xs text-muted-foreground">{from} to {to}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead><tr className="border">
+              <th className="border py-1 px-1 text-left">Officer</th>
+              {activeProducts.slice(0, 6).map((p) => <th key={p.id} className="border py-1 px-1 text-center">{p.reportAlias}</th>)}
+              <th className="border py-1 px-1 text-right">Total Qty</th>
+            </tr></thead>
+            <tbody>
+              {officers.map((o) => {
+                let total = 0;
+                return (
+                  <tr key={o} className="border">
+                    <td className="border py-1 px-1">{o}</td>
+                    {activeProducts.slice(0, 6).map((p) => {
+                      const qty = Math.floor(Math.random() * 100) + 20;
+                      total += qty;
+                      return <td key={p.id} className="border py-1 px-1 text-center">{qty}</td>;
+                    })}
+                    <td className="border py-1 px-1 text-right font-semibold">{total}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1">TOTAL</td>
+                {activeProducts.slice(0, 6).map((p) => <td key={p.id} className="border py-1 px-1 text-center">-</td>)}
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+      return [page];
+    }}
   />
 );
 
+// 12.4 Cash Sales
 export const CashSalesReport = () => (
-  <SalesReportShell
-    title="Cash Sales"
-    description="Daily-payment customers' sales"
-    reportTitle="Cash Sales Report"
-    columns={[
-      { label: "Customer", key: "customer" },
-      { label: "Route", key: "route" },
-      { label: "Qty", key: "qty", align: "right" },
-      { label: "Amount", key: "amount", align: "right" },
-    ]}
-    mockRows={[
-      { customer: "Sri Lakshmi Dairy", route: "Haveri City Route 1", qty: 100, amount: "₹2,250" },
-      { customer: "Nandini Parlour MG Road", route: "Haveri City Route 2", qty: 30, amount: "₹660" },
-      { customer: "Maruthi Stores", route: "Ranebennur Route", qty: 60, amount: "₹1,350" },
-      { customer: "TOTAL", route: "", qty: 190, amount: "₹4,260", _bold: true },
-    ]}
+  <SalesReportShell title="Cash Sales" description="Daily-payment customers' sales" reportTitle="Cash Sales Report"
+    renderPages={(from, to) => {
+      const cashCustomers = customers.filter((c) => c.payMode === "Cash" && c.status === "Active");
+      const page = (
+        <div key="p1">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">Cash Sales Report</p>
+            <p className="text-xs text-muted-foreground">{from} to {to}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead><tr className="border">
+              <th className="border py-1 px-1 text-left">Sl</th>
+              <th className="border py-1 px-1 text-left">Customer</th>
+              <th className="border py-1 px-1 text-left">Route</th>
+              {activeProducts.slice(0, 5).map((p) => <th key={p.id} className="border py-1 px-1 text-center">{p.reportAlias}</th>)}
+              <th className="border py-1 px-1 text-right">Total Qty</th>
+              <th className="border py-1 px-1 text-right">Amount</th>
+            </tr></thead>
+            <tbody>
+              {cashCustomers.map((c, idx) => {
+                const route = routes.find((r) => r.id === c.routeId);
+                let tq = 0;
+                return (
+                  <tr key={c.id} className="border">
+                    <td className="border py-1 px-1">{idx + 1}</td>
+                    <td className="border py-1 px-1">{c.name}</td>
+                    <td className="border py-1 px-1">{route?.name}</td>
+                    {activeProducts.slice(0, 5).map((p) => {
+                      const qty = Math.floor(Math.random() * 40) + 5;
+                      tq += qty;
+                      return <td key={p.id} className="border py-1 px-1 text-center">{qty}</td>;
+                    })}
+                    <td className="border py-1 px-1 text-right">{tq}</td>
+                    <td className="border py-1 px-1 text-right">₹{(tq * 22).toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1" colSpan={3}>TOTAL</td>
+                {activeProducts.slice(0, 5).map((p) => <td key={p.id} className="border py-1 px-1 text-center">-</td>)}
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+      return [page];
+    }}
   />
 );
 
+// 12.5 Credit Sales
 export const CreditSalesReport = () => (
-  <SalesReportShell
-    title="Credit Sales"
-    description="Monthly credit institution sales"
-    reportTitle="Credit Sales Report"
-    columns={[
-      { label: "Institution", key: "institution" },
-      { label: "Product", key: "product" },
-      { label: "Qty", key: "qty", align: "right" },
-      { label: "Rate", key: "rate", align: "right" },
-      { label: "Amount", key: "amount", align: "right" },
-    ]}
-    mockRows={[
-      { institution: "Govt. Hospital Haveri", product: "TM 500", qty: 20, rate: "₹24.00", amount: "₹480" },
-      { institution: "Govt. Hospital Haveri", product: "Curd 500", qty: 10, rate: "₹30.00", amount: "₹300" },
-      { institution: "Hotel Sagar", product: "TM 500", qty: 40, rate: "₹22.50", amount: "₹900" },
-      { institution: "TOTAL", product: "", qty: 70, rate: "", amount: "₹1,680", _bold: true },
-    ]}
+  <SalesReportShell title="Credit Sales" description="Monthly credit institution sales" reportTitle="Credit Sales Report"
+    renderPages={(from, to) => {
+      const creditCustomers = customers.filter((c) => c.payMode === "Credit" && c.status === "Active");
+      return creditCustomers.map((c) => {
+        const route = routes.find((r) => r.id === c.routeId);
+        return (
+          <div key={c.id}>
+            <div className="text-center mb-4">
+              <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+              <p className="text-xs font-semibold">Credit Sales — {c.name}</p>
+              <p className="text-xs text-muted-foreground">{from} to {to} | Route: {route?.name}</p>
+            </div>
+            <table className="w-full text-[10px] border-collapse">
+              <thead><tr className="border">
+                <th className="border py-1 px-1 text-left">Date</th>
+                {activeProducts.slice(0, 5).map((p) => <th key={p.id} className="border py-1 px-1 text-center">{p.reportAlias}</th>)}
+                <th className="border py-1 px-1 text-right">Total Qty</th>
+                <th className="border py-1 px-1 text-right">Amount</th>
+              </tr></thead>
+              <tbody>
+                {["2026-04-07", "2026-04-08"].map((d) => {
+                  let tq = 0;
+                  return (
+                    <tr key={d} className="border">
+                      <td className="border py-1 px-1">{d}</td>
+                      {activeProducts.slice(0, 5).map((p) => {
+                        const qty = Math.floor(Math.random() * 30) + 5;
+                        tq += qty;
+                        return <td key={p.id} className="border py-1 px-1 text-center">{qty}</td>;
+                      })}
+                      <td className="border py-1 px-1 text-right">{tq}</td>
+                      <td className="border py-1 px-1 text-right">₹{(tq * 24).toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="border font-semibold bg-muted/20">
+                  <td className="border py-1 px-1">TOTAL</td>
+                  {activeProducts.slice(0, 5).map((p) => <td key={p.id} className="border py-1 px-1 text-center">-</td>)}
+                  <td className="border py-1 px-1 text-right">-</td>
+                  <td className="border py-1 px-1 text-right">-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      });
+    }}
   />
 );
 
+// 12.6 Sales Register
 export const SalesRegister = () => (
-  <SalesReportShell
-    title="Sales Register"
-    description="Combined cash + credit sales"
-    reportTitle="Sales Register"
-    columns={[
-      { label: "Date", key: "date" },
-      { label: "Cash Sales", key: "cash", align: "right" },
-      { label: "Credit Sales", key: "credit", align: "right" },
-      { label: "Adhoc Sales", key: "adhoc", align: "right" },
-      { label: "Total", key: "total", align: "right" },
-    ]}
-    mockRows={[
-      { date: "07-04-2026", cash: "₹5,400", credit: "₹1,200", adhoc: "₹350", total: "₹6,950" },
-      { date: "08-04-2026", cash: "₹4,260", credit: "₹1,680", adhoc: "₹870", total: "₹6,810" },
-      { date: "TOTAL", cash: "₹9,660", credit: "₹2,880", adhoc: "₹1,220", total: "₹13,760", _bold: true },
-    ]}
+  <SalesReportShell title="Sales Register" description="Combined cash + credit sales" reportTitle="Sales Register"
+    renderPages={(from, to) => {
+      const page = (
+        <div key="p1">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">Sales Register</p>
+            <p className="text-xs text-muted-foreground">{from} to {to}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead><tr className="border">
+              <th className="border py-1 px-1 text-left">Date</th>
+              {activeProducts.slice(0, 5).map((p) => <th key={p.id} className="border py-1 px-1 text-center">{p.reportAlias}</th>)}
+              <th className="border py-1 px-1 text-right">Cash Sales</th>
+              <th className="border py-1 px-1 text-right">Credit Sales</th>
+              <th className="border py-1 px-1 text-right">Adhoc</th>
+              <th className="border py-1 px-1 text-right">Grand Total</th>
+            </tr></thead>
+            <tbody>
+              {["2026-04-07", "2026-04-08"].map((d) => (
+                <tr key={d} className="border">
+                  <td className="border py-1 px-1">{d}</td>
+                  {activeProducts.slice(0, 5).map((p) => <td key={p.id} className="border py-1 px-1 text-center">{Math.floor(Math.random() * 200) + 50}</td>)}
+                  <td className="border py-1 px-1 text-right">₹{(Math.floor(Math.random() * 5000) + 3000).toLocaleString()}</td>
+                  <td className="border py-1 px-1 text-right">₹{(Math.floor(Math.random() * 2000) + 1000).toLocaleString()}</td>
+                  <td className="border py-1 px-1 text-right">₹{(Math.floor(Math.random() * 1000) + 200).toLocaleString()}</td>
+                  <td className="border py-1 px-1 text-right font-semibold">₹{(Math.floor(Math.random() * 8000) + 5000).toLocaleString()}</td>
+                </tr>
+              ))}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1">TOTAL</td>
+                {activeProducts.slice(0, 5).map((p) => <td key={p.id} className="border py-1 px-1 text-center">-</td>)}
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+      return [page];
+    }}
   />
 );
 
+// 12.7 Taluka/Agent wise
 export const TalukaAgentSales = () => (
-  <SalesReportShell
-    title="Taluka/Agent Wise Sales"
-    description="Sales grouped by taluka and agent"
-    reportTitle="Taluka/Agent Wise Sales"
-    columns={[
-      { label: "Taluka", key: "taluka" },
-      { label: "Agent", key: "agent" },
-      { label: "Route", key: "route" },
-      { label: "Qty", key: "qty", align: "right" },
-      { label: "Amount", key: "amount", align: "right" },
-    ]}
-    mockRows={[
-      { taluka: "Haveri", agent: "Agent Ravi", route: "Haveri City Route 1", qty: 120, amount: "₹3,240" },
-      { taluka: "Haveri", agent: "Agent Kumar", route: "Haveri City Route 2", qty: 85, amount: "₹2,180" },
-      { taluka: "Ranebennur", agent: "Agent Prakash", route: "Ranebennur Route", qty: 60, amount: "₹1,350" },
-      { taluka: "TOTAL", agent: "", route: "", qty: 265, amount: "₹6,770", _bold: true },
-    ]}
+  <SalesReportShell title="Taluka/Agent Wise Sales" description="Sales grouped by taluka and agent" reportTitle="Taluka/Agent Wise Sales"
+    renderPages={(from, to) => {
+      return routes.slice(0, 3).map((route) => (
+        <div key={route.id}>
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">Taluka/Agent Wise Sales — {route.name}</p>
+            <p className="text-xs text-muted-foreground">{from} to {to} | Taluka: {route.taluka}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead><tr className="border">
+              <th className="border py-1 px-1 text-left">Agent</th>
+              {activeProducts.slice(0, 5).map((p) => <th key={p.id} className="border py-1 px-1 text-center">{p.reportAlias}</th>)}
+              <th className="border py-1 px-1 text-right">Total Qty</th>
+              <th className="border py-1 px-1 text-right">Amount</th>
+            </tr></thead>
+            <tbody>
+              {agents.slice(0, 2).map((a) => {
+                let tq = 0;
+                return (
+                  <tr key={a.code} className="border">
+                    <td className="border py-1 px-1">{a.name}</td>
+                    {activeProducts.slice(0, 5).map((p) => {
+                      const qty = Math.floor(Math.random() * 80) + 10;
+                      tq += qty;
+                      return <td key={p.id} className="border py-1 px-1 text-center">{qty}</td>;
+                    })}
+                    <td className="border py-1 px-1 text-right">{tq}</td>
+                    <td className="border py-1 px-1 text-right">₹{(tq * 22).toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1">TOTAL</td>
+                {activeProducts.slice(0, 5).map((p) => <td key={p.id} className="border py-1 px-1 text-center">-</td>)}
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ));
+    }}
   />
 );
 
+// 12.8 Adhoc Sales
 export const AdhocSalesReport = () => (
-  <SalesReportShell
-    title="Adhoc Sales Abstract"
-    description="Emergency/ad-hoc sales summary"
-    reportTitle="Adhoc Sales Abstract"
-    columns={[
-      { label: "Date", key: "date" },
-      { label: "Agent", key: "agent" },
-      { label: "Type", key: "type" },
-      { label: "Qty", key: "qty", align: "right" },
-      { label: "Amount", key: "amount", align: "right" },
-    ]}
-    mockRows={[
-      { date: "08-04-2026", agent: "Agent Ravi", type: "Gate Pass", qty: 20, amount: "₹450" },
-      { date: "08-04-2026", agent: "Agent Kumar", type: "Gate Pass", qty: 15, amount: "₹420" },
-      { date: "TOTAL", agent: "", type: "", qty: 35, amount: "₹870", _bold: true },
-    ]}
+  <SalesReportShell title="Adhoc Sales Abstract" description="Emergency/ad-hoc sales summary" reportTitle="Adhoc Sales Abstract"
+    renderPages={(from, to) => {
+      const page = (
+        <div key="p1">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">Adhoc Sales Abstract</p>
+            <p className="text-xs text-muted-foreground">{from} to {to}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead><tr className="border">
+              <th className="border py-1 px-1 text-left">Date</th>
+              <th className="border py-1 px-1 text-left">GP No.</th>
+              <th className="border py-1 px-1 text-left">Agent/Customer</th>
+              {activeProducts.slice(0, 5).map((p) => <th key={p.id} className="border py-1 px-1 text-center">{p.reportAlias}</th>)}
+              <th className="border py-1 px-1 text-right">Total Qty</th>
+              <th className="border py-1 px-1 text-right">Amount</th>
+            </tr></thead>
+            <tbody>
+              {agents.slice(0, 3).map((a, i) => {
+                let tq = 0;
+                return (
+                  <tr key={a.code} className="border">
+                    <td className="border py-1 px-1">2026-04-08</td>
+                    <td className="border py-1 px-1">GP-00{i + 1}</td>
+                    <td className="border py-1 px-1">{a.name}</td>
+                    {activeProducts.slice(0, 5).map((p) => {
+                      const qty = Math.floor(Math.random() * 20) + 5;
+                      tq += qty;
+                      return <td key={p.id} className="border py-1 px-1 text-center">{qty}</td>;
+                    })}
+                    <td className="border py-1 px-1 text-right">{tq}</td>
+                    <td className="border py-1 px-1 text-right">₹{(tq * 22).toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1" colSpan={3}>TOTAL</td>
+                {activeProducts.slice(0, 5).map((p) => <td key={p.id} className="border py-1 px-1 text-center">-</td>)}
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+      return [page];
+    }}
   />
 );
 
+// 13. GST Sales Statement
 export const GSTStatement = () => (
-  <SalesReportShell
-    title="GST Sales Statement"
-    description="GST-compliant sales with tax breakdowns"
-    reportTitle="GST Sales Statement"
-    columns={[
-      { label: "Product", key: "product" },
-      { label: "HSN", key: "hsn" },
-      { label: "Qty", key: "qty", align: "right" },
-      { label: "Taxable Value", key: "taxable", align: "right" },
-      { label: "CGST", key: "cgst", align: "right" },
-      { label: "SGST", key: "sgst", align: "right" },
-      { label: "Total", key: "total", align: "right" },
-    ]}
-    mockRows={[
-      { product: "TM 500", hsn: "0401", qty: 250, taxable: "₹5,625", cgst: "₹0", sgst: "₹0", total: "₹5,625" },
-      { product: "Curd 500", hsn: "0403", qty: 80, taxable: "₹2,133", cgst: "₹53", sgst: "₹53", total: "₹2,240" },
-      { product: "BM 200", hsn: "0403", qty: 150, taxable: "₹1,205", cgst: "₹72", sgst: "₹72", total: "₹1,350" },
-      { product: "TOTAL", hsn: "", qty: 480, taxable: "₹8,963", cgst: "₹125", sgst: "₹125", total: "₹9,215", _bold: true },
-    ]}
+  <SalesReportShell title="GST Sales Statement" description="GST-compliant sales with tax breakdowns" reportTitle="GST Sales Statement"
+    renderPages={(from, to) => {
+      const page = (
+        <div key="p1">
+          <div className="text-center mb-4">
+            <h2 className="text-sm font-bold uppercase">Haveri Milk Union</h2>
+            <p className="text-xs font-semibold">GST Sales Statement</p>
+            <p className="text-xs text-muted-foreground">{from} to {to}</p>
+          </div>
+          <table className="w-full text-[10px] border-collapse">
+            <thead><tr className="border">
+              <th className="border py-1 px-1 text-left">Product</th>
+              <th className="border py-1 px-1 text-left">HSN</th>
+              <th className="border py-1 px-1 text-right">Qty</th>
+              <th className="border py-1 px-1 text-right">GST%</th>
+              <th className="border py-1 px-1 text-right">Taxable Value</th>
+              <th className="border py-1 px-1 text-right">CGST</th>
+              <th className="border py-1 px-1 text-right">SGST</th>
+              <th className="border py-1 px-1 text-right">Total Tax</th>
+              <th className="border py-1 px-1 text-right">Invoice Value</th>
+            </tr></thead>
+            <tbody>
+              {activeProducts.map((p) => {
+                const qty = Math.floor(Math.random() * 300) + 50;
+                const rate = p.rateCategories["Retail-Dealer"] || p.mrp;
+                const taxable = qty * rate / (1 + p.gstPercent / 100);
+                const cgst = taxable * (p.cgst / 100);
+                const sgst = taxable * (p.sgst / 100);
+                const totalTax = cgst + sgst;
+                const invoice = taxable + totalTax;
+                return (
+                  <tr key={p.id} className="border">
+                    <td className="border py-1 px-1">{p.reportAlias}</td>
+                    <td className="border py-1 px-1">{p.hsnNo}</td>
+                    <td className="border py-1 px-1 text-right">{qty}</td>
+                    <td className="border py-1 px-1 text-right">{p.gstPercent}%</td>
+                    <td className="border py-1 px-1 text-right">₹{taxable.toFixed(2)}</td>
+                    <td className="border py-1 px-1 text-right">₹{cgst.toFixed(2)}</td>
+                    <td className="border py-1 px-1 text-right">₹{sgst.toFixed(2)}</td>
+                    <td className="border py-1 px-1 text-right">₹{totalTax.toFixed(2)}</td>
+                    <td className="border py-1 px-1 text-right font-semibold">₹{invoice.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border font-semibold bg-muted/20">
+                <td className="border py-1 px-1" colSpan={4}>TOTAL</td>
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+                <td className="border py-1 px-1 text-right">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+      return [page];
+    }}
   />
 );
