@@ -1,15 +1,32 @@
+import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { batches, routes } from "@/data/mockData";
 import { Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
 
+const batchTimings: Record<string, string> = {
+  Morning: "5:00 AM - 8:00 AM",
+  Afternoon: "12:00 PM - 2:00 PM",
+  Evening: "4:00 PM - 6:00 PM",
+  Night: "8:00 PM - 10:00 PM",
+};
+
 interface Props { tab?: "list" | "new"; }
 
 const BatchesPage = ({ tab = "list" }: Props) => {
+  const [whichBatch, setWhichBatch] = useState("");
+  const [timing, setTiming] = useState("");
+
+  const handleBatchChange = (val: string) => {
+    setWhichBatch(val);
+    setTiming(batchTimings[val] || "");
+  };
+
   if (tab === "new") {
     return (
       <div>
@@ -18,8 +35,16 @@ const BatchesPage = ({ tab = "list" }: Props) => {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-xl">
               <div><Label>Batch Code</Label><Input placeholder="e.g. BT04" /></div>
-              <div><Label>Which Batch</Label><Input placeholder="e.g. Afternoon" /></div>
-              <div><Label>Timing</Label><Input placeholder="e.g. 5:00 AM - 8:00 AM" /></div>
+              <div>
+                <Label>Which Batch</Label>
+                <Select value={whichBatch} onValueChange={handleBatchChange}>
+                  <SelectTrigger><SelectValue placeholder="Select batch" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(batchTimings).map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Timing</Label><Input value={timing} readOnly placeholder="Auto-generated" className="bg-muted/30" /></div>
             </div>
             <div className="mt-6"><Button onClick={() => toast.success("Batch saved (mock)")}><Plus className="h-4 w-4 mr-1" /> Save</Button></div>
           </CardContent>

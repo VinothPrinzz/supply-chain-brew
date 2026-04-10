@@ -273,6 +273,7 @@ export const notificationSettings: NotificationSetting[] = [
 export interface Banner {
   id: string;
   title: string;
+  category: string;
   imageUrl: string;
   linkUrl: string;
   status: "Active" | "Inactive";
@@ -281,9 +282,9 @@ export interface Banner {
 }
 
 export const banners: Banner[] = [
-  { id: "BN1", title: "Summer Special Offer", imageUrl: "/placeholder.svg", linkUrl: "#", status: "Active", startDate: "2026-04-01", endDate: "2026-04-30" },
-  { id: "BN2", title: "New Product Launch - Mango Lassi", imageUrl: "/placeholder.svg", linkUrl: "#", status: "Active", startDate: "2026-04-05", endDate: "2026-05-05" },
-  { id: "BN3", title: "Festival Discount", imageUrl: "/placeholder.svg", linkUrl: "#", status: "Inactive", startDate: "2026-03-15", endDate: "2026-03-31" },
+  { id: "BN1", title: "Summer Special Offer", category: "Sales", imageUrl: "/placeholder.svg", linkUrl: "#", status: "Active", startDate: "2026-04-01", endDate: "2026-04-30" },
+  { id: "BN2", title: "New Product Launch - Mango Lassi", category: "New Launch", imageUrl: "/placeholder.svg", linkUrl: "#", status: "Active", startDate: "2026-04-05", endDate: "2026-05-05" },
+  { id: "BN3", title: "Festival Discount", category: "Festival", imageUrl: "/placeholder.svg", linkUrl: "#", status: "Inactive", startDate: "2026-03-15", endDate: "2026-03-31" },
 ];
 
 export interface SystemUser {
