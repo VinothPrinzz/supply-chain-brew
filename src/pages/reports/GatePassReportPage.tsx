@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import ReportViewer from "@/components/ReportViewer";
-import { products } from "@/data/mockData";
+import { fetchProducts } from "@/services/api";
 
 const GatePassReportPage = () => {
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
   const [fromDate, setFromDate] = useState("2026-04-01");
   const [toDate, setToDate] = useState("2026-04-08");
   const [showReport, setShowReport] = useState(false);
@@ -36,16 +38,12 @@ const GatePassReportPage = () => {
           <th className="border py-1 px-2 text-right">Amount</th>
         </tr></thead>
         <tbody>
-          {mockGatePassData.map((gp) => (
+          {mockGatePassData.map(gp => (
             <tr key={gp.gpNo} className="border">
               <td className="border py-1 px-2 font-mono">{gp.gpNo}</td>
               <td className="border py-1 px-2">{gp.date}</td>
               <td className="border py-1 px-2">{gp.agent}</td>
-              <td className="border py-1 px-2">
-                {gp.items.map((item, i) => (
-                  <div key={i}>{item.name} × {item.qty}</div>
-                ))}
-              </td>
+              <td className="border py-1 px-2">{gp.items.map((item, i) => <div key={i}>{item.name} × {item.qty}</div>)}</td>
               <td className="border py-1 px-2 text-right">₹{gp.amount.toLocaleString()}</td>
             </tr>
           ))}
@@ -63,8 +61,8 @@ const GatePassReportPage = () => {
       <PageHeader title="Gate Pass Sales Report" description="View gate pass/adhoc sales" />
       <Card className="mb-6"><CardContent className="pt-6">
         <div className="flex flex-wrap gap-4 items-end">
-          <div><Label>From</Label><Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-44" /></div>
-          <div><Label>To</Label><Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-44" /></div>
+          <div><Label>From</Label><Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-44" /></div>
+          <div><Label>To</Label><Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-44" /></div>
           <Button onClick={() => setShowReport(true)}>Generate</Button>
         </div>
       </CardContent></Card>
