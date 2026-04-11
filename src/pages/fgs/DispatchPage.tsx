@@ -1,64 +1,64 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { type ColumnDef } from "@tanstack/react-table";
 import PageHeader from "@/components/PageHeader";
+import { DataTable } from "@/components/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { products, stockEntries, indents, customers } from "@/data/mockData";
+import { fetchProducts, fetchStockEntries, fetchIndents } from "@/services/api";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
-const DispatchPage = () => {
-  // Calculate pending dispatch from pending indents
-  const pendingIndents = indents.filter((i) => i.status === "Pending");
-  const demandByProduct: Record<string, number> = {};
-  pendingIndents.forEach((ind) => {
-    ind.items.forEach((it) => {
-      demandByProduct[it.productId] = (demandByProduct[it.productId] || 0) + it.quantity;
-    });
-  });
+interface DispatchRow {
+  product: { id: string; name: string };
+  demand: number;
+  stock: number;
+  shortage: number;
+}
 
-  const stockByProduct: Record<string, number> = {};
-  stockEntries.forEach((s) => {
-    stockByProduct[s.productId] = (stockByProduct[s.productId] || 0) + s.quantity;
-  });
+const DispatchPage = () => {
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
+  const { data: stockEntries = [] } = useQuery({ queryKey: ["stockEntries"], queryFn: fetchStockEntries });
+  const { data: indents = [] } = useQuery({ queryKey: ["indents"], queryFn: fetchIndents });
+
+  const dispatchData = useMemo<DispatchRow[]>(() => {
+    const pendingIndents = indents.filter(i => i.status === "Pending");
+    const demandByProduct: Record<string, number> = {};
+    pendingIndents.forEach(ind => ind.items.forEach(it => {
+      demandByProduct[it.productId] = (demandByProduct[it.productId] || 0) + it.quantity;
+    }));
+
+    const stockByProduct: Record<string, number> = {};
+    stockEntries.forEach(s => { stockByProduct[s.productId] = (stockByProduct[s.productId] || 0) + s.quantity; });
+
+    return products
+      .map(p => {
+        const demand = demandByProduct[p.id] || 0;
+        const stock = stockByProduct[p.id] || 0;
+        return { product: p, demand, stock, shortage: Math.max(0, demand - stock) };
+      })
+      .filter(r => r.demand > 0 || r.stock > 0);
+  }, [products, stockEntries, indents]);
+
+  const columns = useMemo<ColumnDef<DispatchRow>[]>(() => [
+    { accessorFn: r => r.product.name, id: "product", header: "Product", cell: ({ row }) => <span className="font-medium">{row.original.product.name}</span> },
+    { accessorKey: "demand", header: "Pending Demand", cell: ({ row }) => <span className="font-mono">{row.original.demand}</span> },
+    { accessorKey: "stock", header: "Available Stock", cell: ({ row }) => <span className="font-mono">{row.original.stock}</span> },
+    { accessorKey: "shortage", header: "Shortage", cell: ({ row }) => (
+      <span className={`font-mono ${row.original.shortage > 0 ? "text-destructive font-semibold" : ""}`}>{row.original.shortage || "-"}</span>
+    )},
+    { id: "status", header: "Status", cell: ({ row }) => {
+      if (row.original.shortage > 0) return <span className="flex items-center gap-1 text-xs text-destructive"><AlertTriangle className="h-3 w-3" /> Shortage</span>;
+      if (row.original.demand > 0) return <span className="flex items-center gap-1 text-xs text-success"><CheckCircle className="h-3 w-3" /> Sufficient</span>;
+      return <span className="text-xs text-muted-foreground">No demand</span>;
+    }},
+  ], []);
 
   return (
     <div>
       <PageHeader title="Dispatch Integration" description="View pending dispatches vs available stock" />
-
       <Card>
         <CardHeader><CardTitle className="text-base">Pending Dispatch vs Stock</CardTitle></CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead><tr className="border-b">
-              <th className="text-left py-2 px-3 font-medium text-muted-foreground">Product</th>
-              <th className="text-right py-2 px-3 font-medium text-muted-foreground">Pending Demand</th>
-              <th className="text-right py-2 px-3 font-medium text-muted-foreground">Available Stock</th>
-              <th className="text-right py-2 px-3 font-medium text-muted-foreground">Shortage</th>
-              <th className="text-left py-2 px-3 font-medium text-muted-foreground">Status</th>
-            </tr></thead>
-            <tbody>
-              {products.map((p) => {
-                const demand = demandByProduct[p.id] || 0;
-                const stock = stockByProduct[p.id] || 0;
-                const shortage = Math.max(0, demand - stock);
-                if (demand === 0 && stock === 0) return null;
-                return (
-                  <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="py-2 px-3 font-medium">{p.name}</td>
-                    <td className="py-2 px-3 text-right font-mono">{demand}</td>
-                    <td className="py-2 px-3 text-right font-mono">{stock}</td>
-                    <td className={`py-2 px-3 text-right font-mono ${shortage > 0 ? "text-destructive font-semibold" : ""}`}>{shortage || "-"}</td>
-                    <td className="py-2 px-3">
-                      {shortage > 0 ? (
-                        <span className="flex items-center gap-1 text-xs text-destructive"><AlertTriangle className="h-3 w-3" /> Shortage</span>
-                      ) : demand > 0 ? (
-                        <span className="flex items-center gap-1 text-xs text-success"><CheckCircle className="h-3 w-3" /> Sufficient</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No demand</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable columns={columns} data={dispatchData} showSearch={false} showPagination={false} />
         </CardContent>
       </Card>
     </div>
