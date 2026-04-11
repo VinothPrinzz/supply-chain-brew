@@ -1,98 +1,107 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { type ColumnDef } from "@tanstack/react-table";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import PageHeader from "@/components/PageHeader";
+import { DataTable } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { contractors, routes } from "@/data/mockData";
-import { Plus, Edit, Search } from "lucide-react";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { fetchContractors, fetchRoutes, createContractor } from "@/services/api";
+import { contractorSchema, type ContractorFormData } from "@/lib/validations";
+import { Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Contractor, Route as RouteType } from "@/data/mockData";
 
 interface Props { tab?: "list" | "new"; }
 
 const ContractorsPage = ({ tab = "list" }: Props) => {
-  const [search, setSearch] = useState("");
+  const qc = useQueryClient();
+  const { data: contractors = [], isLoading } = useQuery({ queryKey: ["contractors"], queryFn: fetchContractors });
+  const { data: routes = [] } = useQuery({ queryKey: ["routes"], queryFn: fetchRoutes });
 
-  const filtered = contractors.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) || c.vehicleNo.toLowerCase().includes(search.toLowerCase())
-  );
+  const columns = useMemo<ColumnDef<Contractor>[]>(() => [
+    { accessorKey: "name", header: "Name", cell: ({ row }) => <span className="font-medium">{row.original.name}</span> },
+    { accessorKey: "contact", header: "Contact" },
+    { accessorKey: "vehicleNo", header: "Vehicle No.", cell: ({ row }) => <span className="font-mono text-xs">{row.original.vehicleNo}</span> },
+    { accessorKey: "address", header: "Address", cell: ({ row }) => <span className="text-muted-foreground">{row.original.address}</span> },
+    { id: "routes", header: "Assigned Routes", enableSorting: false, cell: ({ row }) => {
+      const assigned = routes.filter(r => row.original.assignedRouteIds.includes(r.id));
+      return (
+        <div className="flex flex-wrap gap-1">
+          {assigned.map(r => <span key={r.id} className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">{r.name}</span>)}
+        </div>
+      );
+    }},
+    { accessorKey: "status", header: "Status", cell: ({ row }) => (
+      <span className={`text-xs px-2 py-0.5 rounded ${row.original.status === "Active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{row.original.status}</span>
+    )},
+    { id: "actions", header: "Actions", enableSorting: false, cell: () => <Button variant="ghost" size="icon" className="h-7 w-7"><Edit className="h-3.5 w-3.5" /></Button> },
+  ], [routes]);
 
   if (tab === "new") {
-    return (
-      <div>
-        <PageHeader title="New Contractor" description="Add a new contractor" />
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg">
-              <div><Label>Contractor Name</Label><Input placeholder="Name" /></div>
-              <div><Label>Contact</Label><Input placeholder="Phone" /></div>
-              <div><Label>Vehicle No.</Label><Input placeholder="KA-XX-XX-XXXX" /></div>
-              <div className="md:col-span-2"><Label>Address</Label><Input placeholder="Address" /></div>
-              <div className="flex items-center gap-2 pt-2"><Switch defaultChecked /><Label>Active</Label></div>
-            </div>
-            <div className="mt-6"><Button onClick={() => toast.success("Contractor saved (mock)")}><Plus className="h-4 w-4 mr-1" /> Save</Button></div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <NewContractorForm />;
   }
+
+  if (isLoading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
 
   return (
     <div>
       <PageHeader title="All Contractors" description="View and manage contractors" />
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Contractors</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-48" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="border-b">
-                <th className="text-left py-2 px-3 font-medium text-muted-foreground">Name</th>
-                <th className="text-left py-2 px-3 font-medium text-muted-foreground">Contact</th>
-                <th className="text-left py-2 px-3 font-medium text-muted-foreground">Vehicle No.</th>
-                <th className="text-left py-2 px-3 font-medium text-muted-foreground">Address</th>
-                <th className="text-left py-2 px-3 font-medium text-muted-foreground">Assigned Routes</th>
-                <th className="text-left py-2 px-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left py-2 px-3 font-medium text-muted-foreground">Actions</th>
-              </tr></thead>
-              <tbody>
-                {filtered.map((ct) => {
-                  const assignedRoutes = routes.filter((r) => ct.assignedRouteIds.includes(r.id));
-                  return (
-                    <tr key={ct.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-2 px-3 font-medium">{ct.name}</td>
-                      <td className="py-2 px-3">{ct.contact}</td>
-                      <td className="py-2 px-3 font-mono text-xs">{ct.vehicleNo}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{ct.address}</td>
-                      <td className="py-2 px-3">
-                        <div className="flex flex-wrap gap-1">
-                          {assignedRoutes.map((r) => (
-                            <span key={r.id} className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">{r.name}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-2 px-3">
-                        <span className={`text-xs px-2 py-0.5 rounded ${ct.status === "Active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{ct.status}</span>
-                      </td>
-                      <td className="py-2 px-3"><Button variant="ghost" size="icon" className="h-7 w-7"><Edit className="h-3.5 w-3.5" /></Button></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <CardContent className="pt-6">
+          <DataTable columns={columns} data={contractors} searchPlaceholder="Search contractors..." />
         </CardContent>
       </Card>
     </div>
   );
 };
+
+function NewContractorForm() {
+  const qc = useQueryClient();
+  const form = useForm<ContractorFormData>({ resolver: zodResolver(contractorSchema), defaultValues: { status: "Active" } });
+  const mutation = useMutation({
+    mutationFn: (data: ContractorFormData) => createContractor(data),
+    onSuccess: () => { toast.success("Contractor saved successfully"); qc.invalidateQueries({ queryKey: ["contractors"] }); form.reset(); },
+    onError: () => toast.error("Failed to save contractor"),
+  });
+
+  return (
+    <div>
+      <PageHeader title="New Contractor" description="Add a new contractor" />
+      <Card>
+        <CardContent className="pt-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(data => mutation.mutate(data))}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg">
+                <FormField control={form.control} name="name" render={({ field }) => (
+                  <FormItem><FormLabel>Contractor Name</FormLabel><FormControl><Input placeholder="Name" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="contact" render={({ field }) => (
+                  <FormItem><FormLabel>Contact</FormLabel><FormControl><Input placeholder="Phone" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="vehicleNo" render={({ field }) => (
+                  <FormItem><FormLabel>Vehicle No.</FormLabel><FormControl><Input placeholder="KA-XX-XX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="address" render={({ field }) => (
+                  <FormItem className="md:col-span-2"><FormLabel>Address</FormLabel><FormControl><Input placeholder="Address" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
+              <div className="mt-6">
+                <Button type="submit" disabled={mutation.isPending}>
+                  <Plus className="h-4 w-4 mr-1" /> {mutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default ContractorsPage;
