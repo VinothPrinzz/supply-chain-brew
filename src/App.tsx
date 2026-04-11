@@ -29,7 +29,7 @@ const GatePassReportPage = lazy(() => import("@/pages/reports/GatePassReportPage
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // Lazy load sales reports
-const SalesReportsModule = lazy(() => import("@/pages/sales-reports/SalesReports"));
+// Sales reports are loaded individually below
 const DailySalesStatement = lazy(() => import("@/pages/sales-reports/SalesReports").then(m => ({ default: m.DailySalesStatement })));
 const DayRouteCashSales = lazy(() => import("@/pages/sales-reports/SalesReports").then(m => ({ default: m.DayRouteCashSales })));
 const OfficerWiseSales = lazy(() => import("@/pages/sales-reports/SalesReports").then(m => ({ default: m.OfficerWiseSales })));

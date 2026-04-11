@@ -1,37 +1,58 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { type ColumnDef } from "@tanstack/react-table";
 import PageHeader from "@/components/PageHeader";
+import { DataTable } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { cancellationRequests, customers, agents, routes, products } from "@/data/mockData";
+import { fetchCancellationRequests, fetchCustomers, fetchRoutes, fetchProducts, approveCancellation, rejectCancellation, getAgents } from "@/services/api";
 import { CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import type { CancellationRequest } from "@/data/mockData";
 
 const CancellationRequestsPage = () => {
+  const qc = useQueryClient();
+  const { data: requests = [] } = useQuery({ queryKey: ["cancellations"], queryFn: fetchCancellationRequests });
+  const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: routes = [] } = useQuery({ queryKey: ["routes"], queryFn: fetchRoutes });
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
+  const agents = getAgents();
+
   const [filter, setFilter] = useState<"all" | "Pending" | "Approved" | "Rejected">("all");
   const [rejectDialog, setRejectDialog] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const filtered = cancellationRequests.filter((r) => filter === "all" || r.status === filter);
+  const filtered = requests.filter(r => filter === "all" || r.status === filter);
+
+  const approveMut = useMutation({
+    mutationFn: (id: string) => approveCancellation(id),
+    onSuccess: () => { toast.success("Request approved"); qc.invalidateQueries({ queryKey: ["cancellations"] }); },
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectCancellation(id, reason),
+    onSuccess: () => { toast.success("Request rejected"); qc.invalidateQueries({ queryKey: ["cancellations"] }); setRejectDialog(null); },
+  });
 
   return (
     <div>
       <PageHeader title="Cancellation Requests" description="Review dealer cancellation and modification requests" />
       <div className="flex gap-2 mb-4">
-        {(["all", "Pending", "Approved", "Rejected"] as const).map((f) => (
+        {(["all", "Pending", "Approved", "Rejected"] as const).map(f => (
           <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" onClick={() => setFilter(f)}>
-            {f === "all" ? "All" : f} {f !== "all" && `(${cancellationRequests.filter((r) => r.status === f).length})`}
+            {f === "all" ? "All" : f} {f !== "all" && `(${requests.filter(r => r.status === f).length})`}
           </Button>
         ))}
       </div>
 
       <div className="space-y-4">
-        {filtered.map((req) => {
-          const cust = customers.find((c) => c.id === req.customerId);
-          const agent = agents.find((a) => a.code === req.agentCode);
-          const route = routes.find((r) => r.id === req.routeId);
+        {filtered.map(req => {
+          const cust = customers.find(c => c.id === req.customerId);
+          const agent = agents.find(a => a.code === req.agentCode);
+          const route = routes.find(r => r.id === req.routeId);
 
           return (
             <Card key={req.id}>
@@ -51,24 +72,20 @@ const CancellationRequestsPage = () => {
                     </div>
                     <div className="text-sm mb-2">
                       <span className="text-muted-foreground">Items: </span>
-                      {req.items.map((item) => {
-                        const p = products.find((pr) => pr.id === item.productId);
+                      {req.items.map(item => {
+                        const p = products.find(pr => pr.id === item.productId);
                         return `${p?.reportAlias || item.productId} × ${item.quantity}`;
                       }).join(", ")}
                     </div>
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Total: </span>
-                      <span className="font-mono font-semibold">₹{req.totalAmount.toLocaleString()}</span>
-                    </div>
+                    <div className="text-sm"><span className="text-muted-foreground">Total: </span><span className="font-mono font-semibold">₹{req.totalAmount.toLocaleString()}</span></div>
                     <div className="text-sm mt-1"><span className="text-muted-foreground">Reason: </span>{req.reason}</div>
                     {req.status === "Rejected" && req.rejectionReason && (
-                      <div className="text-sm mt-1 text-destructive"><span className="text-muted-foreground">Rejection Reason: </span>{req.rejectionReason}</div>
+                      <div className="text-sm mt-1 text-destructive"><span className="text-muted-foreground">Rejection: </span>{req.rejectionReason}</div>
                     )}
                   </div>
-
                   {req.status === "Pending" && (
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => toast.success(`Request ${req.id} approved (mock)`)}>
+                      <Button size="sm" onClick={() => approveMut.mutate(req.id)} disabled={approveMut.isPending}>
                         <CheckCircle className="h-4 w-4 mr-1" /> Approve
                       </Button>
                       <Button size="sm" variant="destructive" onClick={() => { setRejectDialog(req.id); setRejectReason(""); }}>
@@ -87,10 +104,12 @@ const CancellationRequestsPage = () => {
       <Dialog open={!!rejectDialog} onOpenChange={() => setRejectDialog(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Reject Request</DialogTitle></DialogHeader>
-          <div><Label>Reason for Rejection</Label><Input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Enter reason" /></div>
+          <div><Label>Reason for Rejection</Label><Input value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Enter reason" /></div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDialog(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => { toast.success("Request rejected (mock)"); setRejectDialog(null); }}>Reject</Button>
+            <Button variant="destructive" onClick={() => rejectDialog && rejectMut.mutate({ id: rejectDialog, reason: rejectReason })} disabled={!rejectReason || rejectMut.isPending}>
+              {rejectMut.isPending ? "Rejecting..." : "Reject"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
