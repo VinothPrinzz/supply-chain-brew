@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { type ColumnDef } from "@tanstack/react-table";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import PageHeader from "@/components/PageHeader";
+import { DataTable } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { batches, routes } from "@/data/mockData";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { fetchBatches, fetchRoutes, createBatch } from "@/services/api";
+import { batchSchema, type BatchFormData } from "@/lib/validations";
 import { Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Route as RouteType } from "@/data/mockData";
 
 const batchTimings: Record<string, string> = {
   Morning: "5:00 AM - 8:00 AM",
@@ -19,45 +27,26 @@ const batchTimings: Record<string, string> = {
 interface Props { tab?: "list" | "new"; }
 
 const BatchesPage = ({ tab = "list" }: Props) => {
-  const [whichBatch, setWhichBatch] = useState("");
-  const [timing, setTiming] = useState("");
+  const { data: batches = [], isLoading } = useQuery({ queryKey: ["batches"], queryFn: fetchBatches });
+  const { data: routes = [] } = useQuery({ queryKey: ["routes"], queryFn: fetchRoutes });
 
-  const handleBatchChange = (val: string) => {
-    setWhichBatch(val);
-    setTiming(batchTimings[val] || "");
-  };
+  const routeColumns = useMemo<ColumnDef<RouteType>[]>(() => [
+    { accessorKey: "code", header: "Code", cell: ({ row }) => <span className="font-mono">{row.original.code}</span> },
+    { accessorKey: "name", header: "Route Name" },
+    { accessorKey: "dispatchTime", header: "Dispatch Time" },
+    { accessorKey: "status", header: "Status", cell: ({ row }) => (
+      <span className={`text-xs px-2 py-0.5 rounded ${row.original.status === "Active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{row.original.status}</span>
+    )},
+  ], []);
 
-  if (tab === "new") {
-    return (
-      <div>
-        <PageHeader title="New Batch" description="Add a new distribution batch" />
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-xl">
-              <div><Label>Batch Code</Label><Input placeholder="e.g. BT04" /></div>
-              <div>
-                <Label>Which Batch</Label>
-                <Select value={whichBatch} onValueChange={handleBatchChange}>
-                  <SelectTrigger><SelectValue placeholder="Select batch" /></SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(batchTimings).map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Timing</Label><Input value={timing} readOnly placeholder="Auto-generated" className="bg-muted/30" /></div>
-            </div>
-            <div className="mt-6"><Button onClick={() => toast.success("Batch saved (mock)")}><Plus className="h-4 w-4 mr-1" /> Save</Button></div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  if (tab === "new") return <NewBatchForm />;
+  if (isLoading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
 
   return (
     <div>
       <PageHeader title="All Batches" description="Distribution batch timings and assigned routes" />
-      {batches.map((b) => {
-        const batchRoutes = routes.filter((r) => b.routeIds.includes(r.id));
+      {batches.map(b => {
+        const batchRoutes = routes.filter(r => b.routeIds.includes(r.id));
         return (
           <Card key={b.id} className="mb-4">
             <CardHeader>
@@ -74,27 +63,7 @@ const BatchesPage = ({ tab = "list" }: Props) => {
             </CardHeader>
             <CardContent>
               <p className="text-xs font-medium text-muted-foreground mb-2">Routes in this batch:</p>
-              <table className="w-full text-sm">
-                <thead><tr className="border-b">
-                  <th className="text-left py-1.5 px-3 font-medium text-muted-foreground">Code</th>
-                  <th className="text-left py-1.5 px-3 font-medium text-muted-foreground">Route Name</th>
-                  <th className="text-left py-1.5 px-3 font-medium text-muted-foreground">Dispatch Time</th>
-                  <th className="text-left py-1.5 px-3 font-medium text-muted-foreground">Status</th>
-                </tr></thead>
-                <tbody>
-                  {batchRoutes.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-1.5 px-3 font-mono">{r.code}</td>
-                      <td className="py-1.5 px-3">{r.name}</td>
-                      <td className="py-1.5 px-3">{r.dispatchTime}</td>
-                      <td className="py-1.5 px-3">
-                        <span className={`text-xs px-2 py-0.5 rounded ${r.status === "Active" ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{r.status}</span>
-                      </td>
-                    </tr>
-                  ))}
-                  {batchRoutes.length === 0 && <tr><td colSpan={4} className="py-2 text-center text-muted-foreground text-xs">No routes assigned</td></tr>}
-                </tbody>
-              </table>
+              <DataTable columns={routeColumns} data={batchRoutes} showSearch={false} showPagination={false} />
             </CardContent>
           </Card>
         );
@@ -102,5 +71,51 @@ const BatchesPage = ({ tab = "list" }: Props) => {
     </div>
   );
 };
+
+function NewBatchForm() {
+  const qc = useQueryClient();
+  const form = useForm<BatchFormData>({ resolver: zodResolver(batchSchema) });
+  const mutation = useMutation({
+    mutationFn: (data: BatchFormData) => createBatch(data),
+    onSuccess: () => { toast.success("Batch saved successfully"); qc.invalidateQueries({ queryKey: ["batches"] }); form.reset(); },
+  });
+
+  const whichBatch = form.watch("whichBatch");
+
+  return (
+    <div>
+      <PageHeader title="New Batch" description="Add a new distribution batch" />
+      <Card>
+        <CardContent className="pt-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(data => mutation.mutate(data))}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-xl">
+                <FormField control={form.control} name="code" render={({ field }) => (
+                  <FormItem><FormLabel>Batch Code</FormLabel><FormControl><Input placeholder="e.g. BT04" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="whichBatch" render={({ field }) => (
+                  <FormItem><FormLabel>Which Batch</FormLabel><FormControl>
+                    <Select onValueChange={(val) => { field.onChange(val); form.setValue("timing", batchTimings[val] || ""); }} value={field.value}>
+                      <SelectTrigger><SelectValue placeholder="Select batch" /></SelectTrigger>
+                      <SelectContent>{Object.keys(batchTimings).map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="timing" render={({ field }) => (
+                  <FormItem><FormLabel>Timing</FormLabel><FormControl><Input {...field} readOnly placeholder="Auto-generated" className="bg-muted/30" /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
+              <div className="mt-6">
+                <Button type="submit" disabled={mutation.isPending}>
+                  <Plus className="h-4 w-4 mr-1" /> {mutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default BatchesPage;
