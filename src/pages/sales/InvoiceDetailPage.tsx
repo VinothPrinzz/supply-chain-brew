@@ -129,9 +129,11 @@ const InvoiceDetailPage = () => {
 
   return (
     <div>
-      <PageHeader title={`Invoice ${invoice.id}`} description={`${customer?.name} · ${invoice.date}`}>
-        <Button asChild variant="outline" size="sm"><Link to="/sales/invoices"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link></Button>
-      </PageHeader>
+      <PageHeader
+        title={`Invoice ${invoice.id}`}
+        description={`${customer?.name} · ${invoice.date}`}
+        actions={<Button asChild variant="outline" size="sm"><Link to="/sales/invoices"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link></Button>}
+      />
       <ReportViewer title={`Tax Invoice — ${invoice.id}`} pages={[page]} />
     </div>
   );

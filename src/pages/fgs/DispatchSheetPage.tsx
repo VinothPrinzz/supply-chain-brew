@@ -69,11 +69,15 @@ const DispatchSheetPage = () => {
 
   return (
     <div>
-      <PageHeader title="Dispatch Sheet" description="Loading checklist for dispatch personnel">
-        <Button asChild size="sm">
-          <Link to="/fgs/dispatch/create"><Plus className="h-4 w-4 mr-1" /> Create Dispatch</Link>
-        </Button>
-      </PageHeader>
+      <PageHeader
+        title="Dispatch Sheet"
+        description="Loading checklist for dispatch personnel"
+        actions={
+          <Button asChild size="sm">
+            <Link to="/fgs/dispatch/create"><Plus className="h-4 w-4 mr-1" /> Create Dispatch</Link>
+          </Button>
+        }
+      />
 
       {/* Filter bar */}
       <Card className="mb-4">
