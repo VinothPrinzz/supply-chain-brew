@@ -24,6 +24,12 @@ const StockEntryPage = lazy(() => import("@/pages/fgs/StockEntryPage"));
 const StockReportsPage = lazy(() => import("@/pages/fgs/StockReportsPage"));
 const DispatchPage = lazy(() => import("@/pages/fgs/DispatchPage"));
 const DispatchSheetPage = lazy(() => import("@/pages/fgs/DispatchSheetPage"));
+const CreateDispatchPage = lazy(() => import("@/pages/fgs/CreateDispatchPage"));
+const PriceRevisionsPage = lazy(() => import("@/pages/masters/PriceRevisionsPage"));
+const InvoicesPage = lazy(() => import("@/pages/sales/InvoicesPage"));
+const InvoiceDetailPage = lazy(() => import("@/pages/sales/InvoiceDetailPage"));
+const PaymentsPage = lazy(() => import("@/pages/finance/PaymentsPage"));
+const LedgerPage = lazy(() => import("@/pages/finance/LedgerPage"));
 const RouteSheetPage = lazy(() => import("@/pages/reports/RouteSheetPage"));
 const GatePassReportPage = lazy(() => import("@/pages/reports/GatePassReportPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -89,6 +95,7 @@ const App = () => (
               <Route path="/masters/products/add" element={<ProductsPage tab="add" />} />
               <Route path="/masters/products/rates" element={<ProductsPage tab="rates" />} />
               <Route path="/masters/price-chart" element={<PriceChartPage />} />
+              <Route path="/masters/price-revisions" element={<PriceRevisionsPage />} />
               {/* Sales */}
               <Route path="/sales/record-indents" element={<RecordIndentsPage />} />
               <Route path="/sales/post-indent" element={<PostIndentPage />} />
@@ -96,12 +103,18 @@ const App = () => (
               <Route path="/sales/direct-sales/cash-customer" element={<DirectSalesPage tab="cash-customer" />} />
               <Route path="/sales/direct-sales/modify" element={<DirectSalesPage tab="modify" />} />
               <Route path="/sales/cancellations" element={<CancellationRequestsPage />} />
+              <Route path="/sales/invoices" element={<InvoicesPage />} />
+              <Route path="/sales/invoices/:id" element={<InvoiceDetailPage />} />
+              {/* Finance */}
+              <Route path="/finance/payments" element={<PaymentsPage />} />
+              <Route path="/finance/ledger" element={<LedgerPage />} />
               {/* FGS */}
               <Route path="/fgs/dashboard" element={<StockDashboard />} />
               <Route path="/fgs/stock-entry" element={<StockEntryPage />} />
               <Route path="/fgs/reports" element={<StockReportsPage />} />
               <Route path="/fgs/dispatch" element={<DispatchPage />} />
               <Route path="/fgs/dispatch-sheet" element={<DispatchSheetPage />} />
+              <Route path="/fgs/dispatch/create" element={<CreateDispatchPage />} />
               {/* Reports */}
               <Route path="/reports/route-sheet" element={<RouteSheetPage />} />
               <Route path="/reports/gate-pass" element={<GatePassReportPage />} />

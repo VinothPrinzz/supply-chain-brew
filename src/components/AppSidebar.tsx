@@ -3,7 +3,7 @@ import {
   BarChart3, Warehouse, ClipboardList, ShoppingCart, Send,
   CreditCard, BookOpen, TrendingUp, Receipt, Map, Zap, FileSpreadsheet,
   ChevronDown, Settings, XCircle, Bell, Image, Shield, UserCog,
-  Timer, Megaphone, LayoutList
+  Timer, Megaphone, Wallet, Plus, Tag,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -72,6 +72,7 @@ const navGroups: NavGroup[] = [
           { title: "All Products", url: "/masters/products", icon: Package },
           { title: "Add Packet", url: "/masters/products/add", icon: Package },
           { title: "Rate Categories", url: "/masters/products/rates", icon: FileText },
+          { title: "Price Revisions", url: "/masters/price-revisions", icon: Tag },
         ],
       },
       {
@@ -107,6 +108,12 @@ const navGroups: NavGroup[] = [
           { title: "Cancellation Requests", url: "/sales/cancellations", icon: XCircle },
         ],
       },
+      {
+        label: "Invoices",
+        items: [
+          { title: "All Invoices", url: "/sales/invoices", icon: Receipt },
+        ],
+      },
     ],
   },
   {
@@ -117,6 +124,15 @@ const navGroups: NavGroup[] = [
       { title: "Stock Entry", url: "/fgs/stock-entry", icon: Package },
       { title: "Stock Reports", url: "/fgs/reports", icon: FileText },
       { title: "Dispatch Sheet", url: "/fgs/dispatch-sheet", icon: Send },
+      { title: "Create Dispatch", url: "/fgs/dispatch/create", icon: Plus },
+    ],
+  },
+  {
+    label: "Finance",
+    icon: Wallet,
+    items: [
+      { title: "Payments", url: "/finance/payments", icon: CreditCard },
+      { title: "Dealer Ledger", url: "/finance/ledger", icon: BookOpen },
     ],
   },
   {
