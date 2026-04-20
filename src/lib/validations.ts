@@ -83,3 +83,35 @@ export const authSchema = z.object({
 });
 
 export type AuthFormData = z.infer<typeof authSchema>;
+
+export const priceRevisionSchema = z.object({
+  productId: z.string().min(1, "Product required"),
+  field: z.enum(["MRP", "RateCategory", "GST"]),
+  rateCategory: z.string().optional(),
+  newValue: z.coerce.number().min(0, "Must be ≥ 0"),
+  effectiveFrom: z.string().min(1, "Effective date required"),
+  effectiveUntil: z.string().optional(),
+  reason: z.string().min(2, "Reason required"),
+});
+export type PriceRevisionFormData = z.infer<typeof priceRevisionSchema>;
+
+export const paymentSchema = z.object({
+  customerId: z.string().min(1, "Customer required"),
+  date: z.string().min(1, "Date required"),
+  mode: z.enum(["Cash", "UPI", "Cheque", "Bank"]),
+  reference: z.string().optional(),
+  amount: z.coerce.number().positive("Amount must be > 0"),
+  notes: z.string().optional(),
+});
+export type PaymentFormData = z.infer<typeof paymentSchema>;
+
+export const dispatchCreateSchema = z.object({
+  date: z.string().min(1, "Date required"),
+  routeId: z.string().min(1, "Route required"),
+  batchId: z.string().min(1, "Batch required"),
+  dispatchTime: z.string().min(1, "Time required"),
+  vehicleNo: z.string().min(3, "Vehicle no. required"),
+  driverName: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type DispatchCreateFormData = z.infer<typeof dispatchCreateSchema>;

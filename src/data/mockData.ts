@@ -310,3 +310,106 @@ export const roles = [
   { role: "Operator", permissions: ["Record indents", "Stock entry", "View reports"] },
   { role: "Viewer", permissions: ["View reports", "View dashboard"] },
 ];
+
+// ===== PRICE REVISIONS =====
+export type PriceRevisionField = "MRP" | "RateCategory" | "GST";
+export interface PriceRevision {
+  id: string;
+  productId: string;
+  field: PriceRevisionField;
+  rateCategory?: string; // when field === "RateCategory"
+  oldValue: number;
+  newValue: number;
+  effectiveFrom: string; // ISO date-time
+  effectiveUntil?: string;
+  reason: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export const priceRevisions: PriceRevision[] = [
+  { id: "PR1", productId: "P1", field: "MRP", oldValue: 22, newValue: 24, effectiveFrom: "2026-03-01T00:00", reason: "Annual revision", createdBy: "Admin User", createdAt: "2026-02-25T10:00" },
+  { id: "PR2", productId: "P5", field: "GST", oldValue: 5, newValue: 12, effectiveFrom: "2026-04-15T00:00", reason: "Tax slab change", createdBy: "Admin User", createdAt: "2026-04-08T11:00" },
+  { id: "PR3", productId: "P3", field: "RateCategory", rateCategory: "Retail-Dealer", oldValue: 27, newValue: 28, effectiveFrom: "2026-05-01T00:00", reason: "Margin update", createdBy: "Manager", createdAt: "2026-04-05T09:30" },
+];
+
+// ===== INVOICES =====
+export interface InvoiceLine {
+  productId: string;
+  qty: number;
+  rate: number;
+  basic: number;
+  cgstAmt: number;
+  sgstAmt: number;
+  total: number;
+}
+export interface Invoice {
+  id: string; // INV-####
+  indentId: string;
+  customerId: string;
+  routeId: string;
+  date: string;
+  lines: InvoiceLine[];
+  subtotal: number;
+  cgst: number;
+  sgst: number;
+  total: number;
+  payMode: "Cash" | "Credit";
+  status: "Paid" | "Unpaid" | "Partial";
+  amountPaid: number;
+}
+
+const buildInvoicesFromIndents = (): Invoice[] => {
+  return indents.map((ind, idx) => {
+    const cust = customers.find(c => c.id === ind.customerId);
+    const cat = cust?.rateCategory || "Retail-Dealer";
+    const lines: InvoiceLine[] = ind.items.map(it => {
+      const p = products.find(pr => pr.id === it.productId)!;
+      const rate = p.rateCategories[cat] ?? p.mrp;
+      const gross = rate * it.quantity;
+      const basic = +(gross / (1 + (p.gstPercent || 0) / 100)).toFixed(2);
+      const cgstAmt = +(basic * (p.cgst / 100)).toFixed(2);
+      const sgstAmt = +(basic * (p.sgst / 100)).toFixed(2);
+      return { productId: p.id, qty: it.quantity, rate, basic, cgstAmt, sgstAmt, total: +gross.toFixed(2) };
+    });
+    const subtotal = +lines.reduce((s, l) => s + l.basic, 0).toFixed(2);
+    const cgst = +lines.reduce((s, l) => s + l.cgstAmt, 0).toFixed(2);
+    const sgst = +lines.reduce((s, l) => s + l.sgstAmt, 0).toFixed(2);
+    const total = +(subtotal + cgst + sgst).toFixed(2);
+    const payMode = cust?.payMode || "Cash";
+    const status: Invoice["status"] = payMode === "Cash" ? "Paid" : (idx % 3 === 0 ? "Partial" : "Unpaid");
+    return {
+      id: `INV-${String(2600 + idx).padStart(5, "0")}`,
+      indentId: ind.id,
+      customerId: ind.customerId,
+      routeId: ind.routeId,
+      date: ind.date,
+      lines, subtotal, cgst, sgst, total,
+      payMode,
+      status,
+      amountPaid: status === "Paid" ? total : status === "Partial" ? +(total / 2).toFixed(2) : 0,
+    };
+  });
+};
+
+export const invoices: Invoice[] = buildInvoicesFromIndents();
+
+// ===== PAYMENTS =====
+export interface PaymentAllocation { invoiceId: string; amount: number; }
+export interface Payment {
+  id: string;
+  receiptNo: string;
+  date: string;
+  customerId: string;
+  mode: "Cash" | "UPI" | "Cheque" | "Bank";
+  reference: string;
+  amount: number;
+  allocations: PaymentAllocation[];
+  notes?: string;
+}
+
+export const payments: Payment[] = [
+  { id: "PAY1", receiptNo: "RCT-0001", date: "2026-04-07", customerId: "C2", mode: "UPI", reference: "UPI-7889654", amount: 15000, allocations: [{ invoiceId: invoices[1]?.id || "INV-02601", amount: 15000 }] },
+  { id: "PAY2", receiptNo: "RCT-0002", date: "2026-04-06", customerId: "C3", mode: "Cheque", reference: "CHQ-008812", amount: 8000, allocations: [{ invoiceId: invoices[2]?.id || "INV-02602", amount: 8000 }] },
+  { id: "PAY3", receiptNo: "RCT-0003", date: "2026-04-08", customerId: "C5", mode: "Cash", reference: "-", amount: 3780, allocations: [{ invoiceId: invoices[4]?.id || "INV-02604", amount: 3780 }] },
+];
