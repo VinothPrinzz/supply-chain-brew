@@ -89,6 +89,73 @@
   }
 }
 
+/* ============================================================
+   Legacy ledger-style reports
+   Mimics dot-matrix print layout: monospace, dashed rules,
+   no cell grid, dense rows. Inspired by legacy DMU printout.
+   Applied to all reports rendered inside ReportViewer.
+   ============================================================ */
+.legacy-report,
+.legacy-report * {
+  font-family: ui-monospace, 'Courier New', Menlo, Consolas, monospace !important;
+  color: #000 !important;
+}
+.legacy-report {
+  font-size: 10px;
+  line-height: 1.25;
+}
+.legacy-report .text-muted-foreground {
+  color: #333 !important;
+}
+.legacy-report h1,
+.legacy-report h2,
+.legacy-report h3,
+.legacy-report p {
+  letter-spacing: 0.02em;
+}
+/* Strip Tailwind cell borders so the table feels open */
+.legacy-report table { border: 0 !important; }
+.legacy-report table td,
+.legacy-report table th {
+  border: 0 !important;
+  padding: 1px 6px !important;
+  background: transparent !important;
+  font-weight: normal !important;
+  white-space: nowrap;
+}
+/* Header band: dashed rule top + bottom, bold uppercase */
+.legacy-report thead tr {
+  border-top: 1px dashed #000 !important;
+  border-bottom: 1px dashed #000 !important;
+}
+.legacy-report thead th {
+  font-weight: 700 !important;
+  text-transform: none;
+  padding: 3px 6px !important;
+}
+/* Striping for readability — very subtle */
+.legacy-report tbody tr:nth-child(even) td {
+  background: #fafafa !important;
+}
+/* TOTAL row: dashed top + bottom, bold */
+.legacy-report tbody tr.font-bold,
+.legacy-report tbody tr:last-child {
+  border-top: 1px dashed #000 !important;
+  border-bottom: 1px dashed #000 !important;
+}
+.legacy-report tbody tr.font-bold td {
+  font-weight: 700 !important;
+  background: transparent !important;
+}
+/* Header block (company name, period) — keep centered, dashed bottom */
+.legacy-report > div > div.text-center,
+.legacy-report > div > div:first-child {
+  border-bottom: 0;
+}
+/* Compact filter/info rows */
+.legacy-report .border-b { border-bottom: 1px dashed #000 !important; }
+.legacy-report .border { border: 0 !important; }
+
 @media print {
   .no-print {
     display: none !important;

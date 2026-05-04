@@ -66,7 +66,7 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ title, pages, className }) 
 
       {/* Report Content - A4 style */}
       <div className="flex-1 overflow-auto bg-muted/30 p-4 flex justify-center">
-        <div className="bg-white shadow-md border rounded-sm w-full max-w-[210mm] min-h-[297mm] p-8 text-foreground">
+        <div className="legacy-report bg-white shadow-md border rounded-sm w-full max-w-[210mm] min-h-[297mm] p-6 text-foreground">
           {pages[currentPage]}
         </div>
       </div>
