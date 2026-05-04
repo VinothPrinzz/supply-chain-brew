@@ -64,10 +64,12 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ title, pages, className }) 
         </div>
       </div>
 
-      {/* Report Content - A4 style */}
-      <div className="flex-1 overflow-auto bg-muted/30 p-4 flex justify-center">
-        <div className="legacy-report bg-white shadow-md border rounded-sm w-full max-w-[210mm] min-h-[297mm] p-6 text-foreground">
-          {pages[currentPage]}
+      {/* Report Content - A4 style. Page can widen past A4 if the table overflows. */}
+      <div className="flex-1 overflow-auto bg-muted/30 p-4">
+        <div className="mx-auto w-fit">
+          <div className="legacy-report bg-white shadow-md border rounded-sm min-w-[210mm] min-h-[297mm] p-6 text-foreground inline-block align-top">
+            {pages[currentPage]}
+          </div>
         </div>
       </div>
     </div>
