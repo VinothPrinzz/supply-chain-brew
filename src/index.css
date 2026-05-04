@@ -157,14 +157,22 @@
 .legacy-report .border { border: 0 !important; }
 
 @media print {
-  .no-print {
-    display: none !important;
+  .no-print { display: none !important; }
+  html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+  /* Hide everything, then reveal only the active report page */
+  body * { visibility: hidden !important; }
+  .legacy-report, .legacy-report * { visibility: visible !important; }
+  .legacy-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
-  body {
-    background: white !important;
-  }
-  @page {
-    size: A4;
-    margin: 10mm;
-  }
+  @page { size: A4; margin: 10mm; }
 }
