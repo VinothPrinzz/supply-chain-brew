@@ -1,112 +1,185 @@
+# Dealer App — Mobile-Style Frontend
 
-
-# New Pages & Dispatch Sheet Revamp
-
-Adding 6 features across FGS, Masters, and a new **Finance** module. All pages use mock data via the existing `services/api.ts` + TanStack Query layer, TanStack `DataTable`, and react-hook-form + zod for forms — consistent with the production-ready architecture already in place.
+A separate dealer-facing app mounted under `/dealer/*` in the same project, designed as a mobile-first PWA-style experience. Admin pages stay untouched. All data uses the existing mock layer (`services/api.ts` + `data/mockData.ts`) extended with new dealer entities — no real backend yet.
 
 ---
 
-## 1. Dispatch Sheet — Item & Crate Loading View (revamp)
+## Routing & Shell
 
-Current page shows route-level totals only. Revamp `src/pages/fgs/DispatchSheetPage.tsx` to be a **loading checklist** for the dispatch person.
+New route group `/dealer/*` bypassing `AppLayout` (no admin sidebar). New `DealerLayout` with:
+- Top dealer header (name, code, credit chip)
+- Page slot
+- **Bottom tab bar (4 tabs)**: Indent · Catalog · Orders · Profile
 
-**Layout:**
-- **Top filter bar:** Date picker, Route selector (or "All Routes"), Batch selector.
-- **Summary strip:** Total Items, Total Packets, Total Crates, Total Routes.
-- **Per-route accordion cards** — each expands to show:
-  - Route header: Route name, Contractor, Vehicle No., Dispatch Time, Status badge.
-  - **Item-wise loading table** (aggregated from all indents on that route):
-    - Columns: `Product | Category | Pack | Total Packets | Packets/Crate | Crates | Loose Packets | Verified ✓`
-    - Verified checkbox per row (local state — for dispatcher's tally).
-  - Footer row: Total Packets, Total Crates.
-  - Action buttons: **Print Loading Slip** (A4), **Mark Dispatched**.
+Mounted in `src/App.tsx` outside the existing `<AppLayout>` route tree.
 
-**Logic:** aggregate `indents` (status Pending/Posted) by `routeId` → group items by `productId` → `crates = floor(qty / packetsPerCrate)`, `loose = qty % packetsPerCrate`.
+Routes:
+- `/dealer` → redirect to `/dealer/indent`
+- `/dealer/indent`
+- `/dealer/catalog`
+- `/dealer/orders`
+- `/dealer/orders/:id` (order detail + invoice viewer)
+- `/dealer/profile`
+- `/dealer/profile/standing-indent`
+- `/dealer/profile/credit`
+- `/dealer/profile/notifications`
 
----
-
-## 2. Create Dispatch Page (new)
-
-New route `/fgs/dispatch/create` → `src/pages/fgs/CreateDispatchPage.tsx`. Sidebar entry under **FGS - Stock**.
-
-**Form (react-hook-form + zod):**
-- Date, Route (dropdown), Batch (dropdown), Dispatch Time (auto-fills from Route, editable), Vehicle No. (auto-fills from Contractor, editable), Driver Name, Notes.
-- **Indent selection panel:** lists pending indents for the selected route+batch+date with checkboxes; live totals (indents, crates, amount) update as user toggles.
-- Submit → calls new `createDispatch()` API → adds to `dispatchEntries` → toast + redirect to Dispatch Sheet.
+A dev "Open Dealer App" link added to the admin Dashboard (and reverse link back to admin from dealer Profile) so both shells are reachable.
 
 ---
 
-## 3. Price Revision Page (new)
+## Data Model (mock)
 
-New route `/masters/price-revisions` → `src/pages/masters/PriceRevisionsPage.tsx`. Sidebar entry under **Masters → Products**.
+Extends `src/data/mockData.ts`:
 
-**Two tabs:**
-- **All Revisions (list):** DataTable with columns `Revision ID | Product | Field (MRP / Rate Cat / GST) | Old Value | New Value | Effective From | Status (Scheduled/Active/Expired) | Created By | Actions (Cancel if Scheduled)`.
-- **New Revision (form):** Product dropdown, Field type (MRP, Rate Category rate, GST%), New value, Effective-from datetime, optional Effective-until, Reason.
+```ts
+type DealerStandingIndent = {
+  dealerId: string; productId: string; defaultQty: number; active: boolean;
+};
 
-**Mock data:** new `priceRevisions: PriceRevision[]` array in `mockData.ts`; status auto-derived from current date vs. effective dates.
+type DealerOrder = {
+  id: string; dealerId: string;
+  deliveryDate: string;          // YYYY-MM-DD
+  createdAt: string;             // ISO
+  status: "draft" | "confirmed" | "locked" | "dispatched" | "delivered";
+  standingItems: { productId: string; qty: number }[];
+  adjustmentItems: { productId: string; qty: number }[];
+  subtotal: number; gst: number; total: number;
+  paymentMode: "credit" | "razorpay";
+  paymentId?: string;
+};
 
----
+type DealerCredit = {
+  dealerId: string; limit: number; used: number; // available = limit - used
+};
 
-## 4. Invoices Page (new)
+type RazorpayPayment = {
+  id: string; dealerId: string;
+  kind: "order" | "topup";
+  orderId?: string; amount: number;
+  razorpayOrderId: string; razorpayPaymentId: string; signature: string;
+  status: "created" | "paid" | "failed"; createdAt: string;
+};
 
-New route `/sales/invoices` → `src/pages/sales/InvoicesPage.tsx`. Sidebar entry under **Sales Operations → Invoices**.
+type DealerNotificationPref = {
+  dealerId: string;
+  credit80: boolean; credit100: boolean;
+  closingReminder: boolean; paymentDue: boolean; dispatched: boolean;
+  autoConfirmPreview: boolean;
+};
+```
 
-**List view:** DataTable with `Invoice No. | Date | Customer | Route | Items Count | Subtotal | GST | Total | Pay Mode | Status (Paid/Unpaid/Partial) | View`.
+Seed: 1 logged-in mock dealer (`D1`) with credit ₹50,000 (₹12,400 used), ~12 active standing-indent products, a few past orders, and a draft order pre-materialized for today.
 
-**Click a row** → opens `InvoiceDetailPage` at `/sales/invoices/:id` rendered inside `ReportViewer` (existing A4 component) for fullscreen + print:
-- Header: Company name, GSTIN, address, "TAX INVOICE", invoice no., date.
-- Bill-to block: Customer name, address, GSTIN, route.
-- Line items table: `Sl | Product | HSN | Qty | Pack | Rate | Basic | CGST% | CGST ₹ | SGST% | SGST ₹ | Total`.
-- Totals block + amount-in-words + signature area.
-
-**Mock:** generated from existing `indents` (one invoice per posted indent) via a helper in `services/api.ts`.
-
----
-
-## 5. Payments Overview (new)
-
-New route `/finance/payments` → `src/pages/finance/PaymentsPage.tsx`. New sidebar group **Finance**.
-
-**Summary cards:** Total Receivable, Received Today, Outstanding, Overdue (>30 days).
-
-**Two tabs:**
-- **Payments list** — DataTable: `Receipt No. | Date | Customer | Mode (Cash/UPI/Cheque/Bank) | Reference | Amount | Allocated To (Invoice) | Status`.
-- **Record Payment** — react-hook-form: Customer (search), Date, Mode, Reference, Amount, allocate to one or more outstanding invoices (auto-suggests oldest first).
-
-**Mock:** new `payments: Payment[]` array.
-
----
-
-## 6. Dealer Ledger / Wallet (new)
-
-New route `/finance/ledger` → `src/pages/finance/LedgerPage.tsx`. Sidebar under **Finance**.
-
-**Layout:**
-- **Top:** Customer dropdown (searchable), Date range, Opening balance display, Print button.
-- **Summary tiles:** Opening Balance, Total Debits (invoices), Total Credits (payments), Closing Balance, Credit Limit, Available Credit.
-- **Ledger table:** `Date | Voucher Type (Invoice / Receipt / Adjustment / Opening) | Voucher No. | Particulars | Debit | Credit | Running Balance`.
-- Rows are merged from invoices + payments, sorted by date, with running balance computed client-side.
-- **Print View:** A4 statement via `ReportViewer` — header (customer details, period), ledger table, footer with closing balance.
+A `services/dealerApi.ts` module exposes: `getCurrentDealer`, `getCredit`, `getOrderForDate`, `upsertDraft`, `confirmOrder`, `listOrders`, `getOrder`, `listStandingIndent`, `setStandingItem`, `getNotificationPrefs`, `setNotificationPrefs`, `simulateRazorpayPayment`, `simulateTopup`. All async with `setTimeout` delay, mirroring existing api.ts style.
 
 ---
 
-## Shared / Infrastructure Changes
+## Indent Tab (`/dealer/indent`)
 
-- **`src/data/mockData.ts`:** add interfaces & seed arrays for `PriceRevision`, `Invoice`, `Payment`, `LedgerEntry` (or derive ledger on the fly).
-- **`src/services/api.ts`:** add `fetchInvoices`, `fetchInvoice(id)`, `fetchPayments`, `createPayment`, `fetchLedger(customerId, from, to)`, `fetchPriceRevisions`, `createPriceRevision`, `cancelPriceRevision`, `createDispatch`, `markRouteVerified`.
-- **`src/lib/validations.ts`:** zod schemas for `priceRevisionSchema`, `paymentSchema`, `dispatchCreateSchema`.
-- **`src/App.tsx`:** lazy-load 5 new pages; add routes.
-- **`src/components/AppSidebar.tsx`:** add `Price Revisions` under Masters→Products, `Create Dispatch` under FGS, `Invoices` under Sales, and a new **Finance** group with `Payments` + `Dealer Ledger`.
-- **`REPORTS_SPEC.md`:** append sections for Invoice and Ledger A4 layouts.
+Top-to-bottom layout:
+
+1. **Dealer header** — name, code, "Credit ₹37,600 / ₹50,000" chip.
+2. **Date selector strip** — horizontally scrollable chips: Today (countdown badge if window open), Tomorrow, +2, weekday labels for next 7 days, then 📅 opens a `Calendar` modal. Selected chip drives the rest of the page.
+3. **Status banner**:
+   - Today + open → "Closes in Xh Ym" (amber)
+   - Today + closed → "Locked — delivery in progress" (gray, read-only)
+   - Future → "Editable anytime · auto-confirms at 8:00 AM on {date}" (blue)
+4. **Standing Indent section** — compact rows: ⭐ icon · product name+pack · `– qty +` stepper · ⋯ menu ("Remove from today only" / "Remove from standing").
+5. **Adjustments section** — same row style, no ⭐. Empty state: "No extras added".
+6. **"+ Add items" button** — `navigate('/dealer/catalog?date=...&mode=add')`.
+7. **Order summary card** — subtotal · GST · total.
+8. **Payment selector** — two radio cards:
+   - Use Credit Limit (default) — shows available + progress bar
+   - Pay Now (Razorpay) — opens mock Razorpay sheet on confirm
+9. **Sticky Confirm button** — label adapts to selected date. Disabled when locked.
+10. **Credit-insufficient state** — replaces payment selector with amber card: "Order is ₹X over available credit" + two CTAs (Top up / Pay this order). Confirm disabled until resolved.
+
+Read-only mode (today after closing) hides steppers and shows summary only.
+
+---
+
+## Catalog Tab (`/dealer/catalog`)
+
+Master-detail:
+- **Left rail (~90px)** — vertical category list with icon + name, active highlighted.
+- **Right pane** — product cards in selected category with `– qty +` steppers bound to the *current selected delivery date's draft*.
+- **Search bar** pinned top — searches across all categories; overrides rail while typing.
+- **Floating "View Indent" pill** at bottom showing running total → returns to `/dealer/indent`.
+
+Categories are derived from `products[].category`.
+
+---
+
+## Orders Tab (`/dealer/orders`)
+
+- List of past + upcoming orders (cards), each: delivery date · status pill · item count · total · "View" + "Invoice" buttons.
+- `/dealer/orders/:id` — order detail showing items, totals, payment info, and a tappable **Invoice** section that opens an A4-style invoice viewer (re-using the existing `InvoiceDetailPage` layout adapted for mobile width).
+
+---
+
+## Profile Tab (`/dealer/profile`)
+
+Sections (in order):
+1. **Dealer card** — name, code, phone, route.
+2. **Credit Limit card** — used / limit with progress bar + **Top Up** button → mock Razorpay top-up sheet (`/dealer/profile/credit`).
+3. **Standing Indent manager** (`/dealer/profile/standing-indent`) — list of eligible products (admin's `makeZero=false` filter); each row: toggle active + qty stepper. Saves to `dealerStandingIndents`.
+4. **Notifications** (`/dealer/profile/notifications`) — toggle list for: credit 80%, credit 100%, closing reminder, payment due, dispatched, auto-confirm preview.
+5. **Settings / Logout** — link back to admin app (dev only), version info.
+
+---
+
+## Notifications
+
+Implemented as toast triggers + an in-page banner where relevant. No real push — surfaced when conditions met during navigation:
+- Credit ≥ 80% → amber toast on Indent open
+- Credit ≥ 100% / overflow at confirm → blocking modal
+- Closing window <15 min with unsaved adjustments → amber sticky banner
+- Auto-confirm preview (mock "last night") → info card on Indent for tomorrow
+
+---
+
+## Razorpay (mocked)
+
+A `RazorpaySheet` modal component simulates the Razorpay flow:
+- Shows amount, dummy UPI/Card tabs, "Pay ₹X" button
+- On click → 1s spinner → success → writes a `RazorpayPayment` row, returns `{paymentId}`
+- Used by both order pay-now and credit top-up
+
+Real integration intentionally deferred until Lovable Cloud is enabled.
 
 ---
 
 ## File Map
 
 **New:**
-`src/pages/fgs/CreateDispatchPage.tsx`, `src/pages/masters/PriceRevisionsPage.tsx`, `src/pages/sales/InvoicesPage.tsx`, `src/pages/sales/InvoiceDetailPage.tsx`, `src/pages/finance/PaymentsPage.tsx`, `src/pages/finance/LedgerPage.tsx`
+- `src/components/dealer/DealerLayout.tsx` — header + bottom tab bar shell
+- `src/components/dealer/DateStrip.tsx`
+- `src/components/dealer/QtyStepper.tsx`
+- `src/components/dealer/ProductRow.tsx`
+- `src/components/dealer/RazorpaySheet.tsx`
+- `src/components/dealer/CreditBar.tsx`
+- `src/pages/dealer/IndentPage.tsx`
+- `src/pages/dealer/CatalogPage.tsx`
+- `src/pages/dealer/OrdersPage.tsx`
+- `src/pages/dealer/OrderDetailPage.tsx`
+- `src/pages/dealer/ProfilePage.tsx`
+- `src/pages/dealer/StandingIndentPage.tsx`
+- `src/pages/dealer/CreditPage.tsx`
+- `src/pages/dealer/NotificationsPage.tsx`
+- `src/services/dealerApi.ts`
 
 **Edited:**
-`src/pages/fgs/DispatchSheetPage.tsx`, `src/data/mockData.ts`, `src/services/api.ts`, `src/lib/validations.ts`, `src/App.tsx`, `src/components/AppSidebar.tsx`, `REPORTS_SPEC.md`
+- `src/data/mockData.ts` — add dealer entities + seed
+- `src/App.tsx` — mount `/dealer/*` route group outside `AppLayout`
+- `src/pages/Dashboard.tsx` — add "Open Dealer App" link
 
+---
+
+## Technical notes
+
+- Mobile-first: max-width container `max-w-md mx-auto`, bottom-tab `h-16 fixed bottom-0`. Works on desktop preview (centered card) and mobile.
+- All forms via react-hook-form + zod (consistent with existing pages).
+- TanStack Query for fetching; mutations invalidate `['dealer','draft', date]` etc.
+- Semantic tokens only — extend `index.css` if a dealer-specific accent is needed (kept to existing palette by default).
+- No backend changes; Razorpay + auto-confirm worker are stubbed so the UI is wired end-to-end and ready to swap to Lovable Cloud later.
