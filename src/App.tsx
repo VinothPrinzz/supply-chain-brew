@@ -34,6 +34,17 @@ const RouteSheetPage = lazy(() => import("@/pages/reports/RouteSheetPage"));
 const GatePassReportPage = lazy(() => import("@/pages/reports/GatePassReportPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+// Dealer app
+const DealerLayout = lazy(() => import("@/components/dealer/DealerLayout"));
+const DealerIndentPage = lazy(() => import("@/pages/dealer/IndentPage"));
+const DealerCatalogPage = lazy(() => import("@/pages/dealer/CatalogPage"));
+const DealerOrdersPage = lazy(() => import("@/pages/dealer/OrdersPage"));
+const DealerOrderDetailPage = lazy(() => import("@/pages/dealer/OrderDetailPage"));
+const DealerProfilePage = lazy(() => import("@/pages/dealer/ProfilePage"));
+const DealerStandingIndentPage = lazy(() => import("@/pages/dealer/StandingIndentPage"));
+const DealerCreditPage = lazy(() => import("@/pages/dealer/CreditPage"));
+const DealerNotificationsPage = lazy(() => import("@/pages/dealer/NotificationsPage"));
+
 // Lazy load sales reports
 // Sales reports are loaded individually below
 const DailySalesStatement = lazy(() => import("@/pages/sales-reports/SalesReports").then(m => ({ default: m.DailySalesStatement })));
