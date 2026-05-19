@@ -82,74 +82,93 @@ const PageLoader = () => (
   </div>
 );
 
+const AdminRoutes = () => (
+  <AppLayout>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        {/* Masters */}
+        <Route path="/masters/customers" element={<CustomersPage tab="list" />} />
+        <Route path="/masters/customers/new" element={<CustomersPage tab="new" />} />
+        <Route path="/masters/customers/assign-route" element={<CustomersPage tab="assign-route" />} />
+        <Route path="/masters/contractors" element={<ContractorsPage tab="list" />} />
+        <Route path="/masters/contractors/new" element={<ContractorsPage tab="new" />} />
+        <Route path="/masters/routes" element={<RoutesPage tab="list" />} />
+        <Route path="/masters/routes/new" element={<RoutesPage tab="new" />} />
+        <Route path="/masters/batches" element={<BatchesPage tab="list" />} />
+        <Route path="/masters/batches/new" element={<BatchesPage tab="new" />} />
+        <Route path="/masters/products" element={<ProductsPage tab="list" />} />
+        <Route path="/masters/products/add" element={<ProductsPage tab="add" />} />
+        <Route path="/masters/products/rates" element={<ProductsPage tab="rates" />} />
+        <Route path="/masters/price-chart" element={<PriceChartPage />} />
+        <Route path="/masters/price-revisions" element={<PriceRevisionsPage />} />
+        {/* Sales */}
+        <Route path="/sales/record-indents" element={<RecordIndentsPage />} />
+        <Route path="/sales/post-indent" element={<PostIndentPage />} />
+        <Route path="/sales/direct-sales/gate-pass" element={<DirectSalesPage tab="gate-pass" />} />
+        <Route path="/sales/direct-sales/cash-customer" element={<DirectSalesPage tab="cash-customer" />} />
+        <Route path="/sales/direct-sales/modify" element={<DirectSalesPage tab="modify" />} />
+        <Route path="/sales/cancellations" element={<CancellationRequestsPage />} />
+        <Route path="/sales/invoices" element={<InvoicesPage />} />
+        <Route path="/sales/invoices/:id" element={<InvoiceDetailPage />} />
+        {/* Finance */}
+        <Route path="/finance/payments" element={<PaymentsPage />} />
+        <Route path="/finance/ledger" element={<LedgerPage />} />
+        {/* FGS */}
+        <Route path="/fgs/dashboard" element={<StockDashboard />} />
+        <Route path="/fgs/stock-entry" element={<StockEntryPage />} />
+        <Route path="/fgs/reports" element={<StockReportsPage />} />
+        <Route path="/fgs/dispatch" element={<DispatchPage />} />
+        <Route path="/fgs/dispatch-sheet" element={<DispatchSheetPage />} />
+        <Route path="/fgs/dispatch/create" element={<CreateDispatchPage />} />
+        {/* Reports */}
+        <Route path="/reports/route-sheet" element={<RouteSheetPage />} />
+        <Route path="/reports/gate-pass" element={<GatePassReportPage />} />
+        {/* Sales Reports */}
+        <Route path="/sales-reports/daily-statement" element={<DailySalesStatement />} />
+        <Route path="/sales-reports/day-route-cash" element={<DayRouteCashSales />} />
+        <Route path="/sales-reports/officer-wise" element={<OfficerWiseSales />} />
+        <Route path="/sales-reports/cash-sales" element={<CashSalesReport />} />
+        <Route path="/sales-reports/credit-sales" element={<CreditSalesReport />} />
+        <Route path="/sales-reports/register" element={<SalesRegister />} />
+        <Route path="/sales-reports/taluka-agent" element={<TalukaAgentSales />} />
+        <Route path="/sales-reports/adhoc" element={<AdhocSalesReport />} />
+        <Route path="/sales-reports/gst" element={<GSTStatement />} />
+        {/* System */}
+        <Route path="/system/time-windows" element={<TimeWindowsPage />} />
+        <Route path="/system/notifications" element={<NotificationsPage />} />
+        <Route path="/system/dealer-notifications" element={<DealerNotificationsPage />} />
+        <Route path="/system/banners" element={<BannerManagementPage />} />
+        <Route path="/system/roles" element={<RolesPage />} />
+        <Route path="/system/users" element={<UserManagementPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
+  </AppLayout>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppLayout>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              {/* Masters */}
-              <Route path="/masters/customers" element={<CustomersPage tab="list" />} />
-              <Route path="/masters/customers/new" element={<CustomersPage tab="new" />} />
-              <Route path="/masters/customers/assign-route" element={<CustomersPage tab="assign-route" />} />
-              <Route path="/masters/contractors" element={<ContractorsPage tab="list" />} />
-              <Route path="/masters/contractors/new" element={<ContractorsPage tab="new" />} />
-              <Route path="/masters/routes" element={<RoutesPage tab="list" />} />
-              <Route path="/masters/routes/new" element={<RoutesPage tab="new" />} />
-              <Route path="/masters/batches" element={<BatchesPage tab="list" />} />
-              <Route path="/masters/batches/new" element={<BatchesPage tab="new" />} />
-              <Route path="/masters/products" element={<ProductsPage tab="list" />} />
-              <Route path="/masters/products/add" element={<ProductsPage tab="add" />} />
-              <Route path="/masters/products/rates" element={<ProductsPage tab="rates" />} />
-              <Route path="/masters/price-chart" element={<PriceChartPage />} />
-              <Route path="/masters/price-revisions" element={<PriceRevisionsPage />} />
-              {/* Sales */}
-              <Route path="/sales/record-indents" element={<RecordIndentsPage />} />
-              <Route path="/sales/post-indent" element={<PostIndentPage />} />
-              <Route path="/sales/direct-sales/gate-pass" element={<DirectSalesPage tab="gate-pass" />} />
-              <Route path="/sales/direct-sales/cash-customer" element={<DirectSalesPage tab="cash-customer" />} />
-              <Route path="/sales/direct-sales/modify" element={<DirectSalesPage tab="modify" />} />
-              <Route path="/sales/cancellations" element={<CancellationRequestsPage />} />
-              <Route path="/sales/invoices" element={<InvoicesPage />} />
-              <Route path="/sales/invoices/:id" element={<InvoiceDetailPage />} />
-              {/* Finance */}
-              <Route path="/finance/payments" element={<PaymentsPage />} />
-              <Route path="/finance/ledger" element={<LedgerPage />} />
-              {/* FGS */}
-              <Route path="/fgs/dashboard" element={<StockDashboard />} />
-              <Route path="/fgs/stock-entry" element={<StockEntryPage />} />
-              <Route path="/fgs/reports" element={<StockReportsPage />} />
-              <Route path="/fgs/dispatch" element={<DispatchPage />} />
-              <Route path="/fgs/dispatch-sheet" element={<DispatchSheetPage />} />
-              <Route path="/fgs/dispatch/create" element={<CreateDispatchPage />} />
-              {/* Reports */}
-              <Route path="/reports/route-sheet" element={<RouteSheetPage />} />
-              <Route path="/reports/gate-pass" element={<GatePassReportPage />} />
-              {/* Sales Reports */}
-              <Route path="/sales-reports/daily-statement" element={<DailySalesStatement />} />
-              <Route path="/sales-reports/day-route-cash" element={<DayRouteCashSales />} />
-              <Route path="/sales-reports/officer-wise" element={<OfficerWiseSales />} />
-              <Route path="/sales-reports/cash-sales" element={<CashSalesReport />} />
-              <Route path="/sales-reports/credit-sales" element={<CreditSalesReport />} />
-              <Route path="/sales-reports/register" element={<SalesRegister />} />
-              <Route path="/sales-reports/taluka-agent" element={<TalukaAgentSales />} />
-              <Route path="/sales-reports/adhoc" element={<AdhocSalesReport />} />
-              <Route path="/sales-reports/gst" element={<GSTStatement />} />
-              {/* System */}
-              <Route path="/system/time-windows" element={<TimeWindowsPage />} />
-              <Route path="/system/notifications" element={<NotificationsPage />} />
-              <Route path="/system/dealer-notifications" element={<DealerNotificationsPage />} />
-              <Route path="/system/banners" element={<BannerManagementPage />} />
-              <Route path="/system/roles" element={<RolesPage />} />
-              <Route path="/system/users" element={<UserManagementPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </AppLayout>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/dealer" element={<DealerLayout />}>
+              <Route index element={<DealerIndentPage />} />
+              <Route path="indent" element={<DealerIndentPage />} />
+              <Route path="catalog" element={<DealerCatalogPage />} />
+              <Route path="orders" element={<DealerOrdersPage />} />
+              <Route path="orders/:id" element={<DealerOrderDetailPage />} />
+              <Route path="profile" element={<DealerProfilePage />} />
+              <Route path="profile/standing-indent" element={<DealerStandingIndentPage />} />
+              <Route path="profile/credit" element={<DealerCreditPage />} />
+              <Route path="profile/notifications" element={<DealerNotifPrefsPage />} />
+            </Route>
+            <Route path="*" element={<AdminRoutes />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
