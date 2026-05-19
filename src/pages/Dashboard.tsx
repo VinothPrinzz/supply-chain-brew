@@ -36,7 +36,11 @@ const Dashboard = () => {
 
   return (
     <div>
-      <PageHeader title="Dashboard" description="Overview of marketing operations" />
+      <PageHeader title="Dashboard" description="Overview of marketing operations">
+        <a href="/dealer" className="inline-flex items-center gap-2 text-sm bg-primary text-primary-foreground px-3 py-2 rounded-md hover:bg-primary/90">
+          Open Dealer App →
+        </a>
+      </PageHeader>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
         {stats.map(s => (
           <Card key={s.label}>
