@@ -43,7 +43,7 @@ const DealerOrderDetailPage = lazy(() => import("@/pages/dealer/OrderDetailPage"
 const DealerProfilePage = lazy(() => import("@/pages/dealer/ProfilePage"));
 const DealerStandingIndentPage = lazy(() => import("@/pages/dealer/StandingIndentPage"));
 const DealerCreditPage = lazy(() => import("@/pages/dealer/CreditPage"));
-const DealerNotificationsPage = lazy(() => import("@/pages/dealer/NotificationsPage"));
+const DealerNotifPrefsPage = lazy(() => import("@/pages/dealer/NotificationsPage"));
 
 // Lazy load sales reports
 // Sales reports are loaded individually below
